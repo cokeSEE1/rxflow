@@ -1,0 +1,16 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
+
+.status-draft       { color: #909399; }
+.status-pending     { color: #e6a23c; }
+.status-rejected    { color: #f56c6c; }
+.status-approved    { color: #67c23a; }
+.status-delivering  { color: #409eff; }
+.status-received    { color: #9b59b6; }
+.status-returned    { color: #e45656; }
+
+.stat-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card { padding: 20px; border-radius: 8px; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+.stat-card .number { font-size: 32px; font-weight: 700; }
+.stat-card .label { font-size: 13px; color: #909399; margin-top: 4px; }
