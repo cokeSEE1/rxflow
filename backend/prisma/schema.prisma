@@ -1,0 +1,103 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  name          String
+  phone         String    @unique
+  passwordHash  String
+  role          String
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  prescriptionsCreated Prescription[] @relation("AssistantPrescriptions")
+  prescriptionsReviewed Prescription[] @relation("DoctorPrescriptions")
+  prescriptionsDelivered Prescription[] @relation("CourierDeliveries")
+  notifications Notification[]
+}
+
+model Patient {
+  id             Int       @id @default(autoincrement())
+  name           String
+  gender         String
+  age            Int?
+  phone          String
+  address        String
+  idCard         String?
+  allergyHistory String?
+  createdAt      DateTime  @default(now())
+  prescriptions  Prescription[]
+}
+
+model Prescription {
+  id              Int       @id @default(autoincrement())
+  prescriptionNo  String    @unique
+  patientId       Int
+  patient         Patient   @relation(fields: [patientId], references: [id])
+  assistantId     Int
+  assistant       User      @relation("AssistantPrescriptions", fields: [assistantId], references: [id])
+  doctorId        Int?
+  doctor          User?     @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
+  diagnosis       String
+  status          String    @default("draft")
+  rejectedReason  String?
+  rejectedType    String?
+  courierId       Int?
+  courier         User?     @relation("CourierDeliveries", fields: [courierId], references: [id])
+  trackingNo      String?
+  deliveryProof   String?
+  note            String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  items           PrescriptionItem[]
+  timeline        PrescriptionTimeline[]
+}
+
+model PrescriptionItem {
+  id             Int      @id @default(autoincrement())
+  prescriptionId Int
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+  drugName       String
+  specification  String
+  dosage         String
+  frequency      String
+  days           Int
+  remark         String?
+}
+
+model PrescriptionTimeline {
+  id             Int      @id @default(autoincrement())
+  prescriptionId Int
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+  action         String
+  operatorId     Int
+  operatorName   String
+  detail         String?
+  createdAt      DateTime @default(now())
+}
+
+model PrescriptionTemplate {
+  id          Int      @id @default(autoincrement())
+  assistantId Int
+  name        String
+  diagnosis   String
+  items       String
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  user           User     @relation(fields: [userId], references: [id])
+  type           String
+  title          String
+  content        String
+  isRead         Boolean  @default(false)
+  prescriptionId Int?
+  createdAt      DateTime @default(now())
+}
