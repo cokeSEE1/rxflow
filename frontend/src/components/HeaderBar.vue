@@ -5,10 +5,19 @@
       <span class="subtitle">处方配送管理平台</span>
     </div>
     <div class="header-right">
-      <NotificationBell />
+      <div class="notification-wrapper" @click="$router.push('/notifications')">
+        <el-badge :value="notificationStore.unreadCount" class="notification-bell">
+          <div class="bell-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          </div>
+        </el-badge>
+      </div>
       <el-dropdown trigger="click">
         <span class="user-info">
-          {{ userStore.user?.name }}
+          <span class="user-name">{{ userStore.user?.name }}</span>
           <el-tag size="small" :type="roleTagType">{{ roleLabel }}</el-tag>
         </span>
         <template #dropdown>
@@ -23,22 +32,36 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import NotificationBell from './NotificationBell.vue'
+import { useNotificationStore } from '@/stores/notification'
 
 const router = useRouter()
 const userStore = useUserStore()
+const notificationStore = useNotificationStore()
+
+onMounted(() => {
+  notificationStore.fetchList()
+})
 
 const roleLabels: Record<string, string> = {
-  assistant: '医生助理', doctor: '医生', courier: '快递员', patient: '病人',
+  assistant: '医生助理',
+  doctor: '医生',
+  courier: '快递员',
+  patient: '患者',
 }
+
 const roleLabel = computed(() => roleLabels[userStore.role] || userStore.role)
 
 const roleTagType = computed(() => {
-  const map: Record<string, string> = { assistant: 'warning', doctor: 'success', courier: '', patient: 'info' }
-  return map[userStore.role] || ''
+  const map: Record<string, string> = {
+    assistant: 'warning',
+    doctor: 'success',
+    courier: 'primary',
+    patient: 'info',
+  }
+  return map[userStore.role] || 'info'
 })
 
 function handleLogout() {
@@ -48,10 +71,81 @@ function handleLogout() {
 </script>
 
 <style scoped>
-.header-bar { display: flex; align-items: center; justify-content: space-between; height: 60px; padding: 0 20px; background: #fff; border-bottom: 1px solid #e6e6e6; }
-.header-left { display: flex; align-items: baseline; gap: 12px; }
-.logo { font-size: 20px; color: #409eff; }
-.subtitle { font-size: 13px; color: #909399; }
-.header-right { display: flex; align-items: center; gap: 20px; }
-.user-info { cursor: pointer; display: flex; align-items: center; gap: 8px; }
+.header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  padding: 0 20px;
+  background: #fff;
+  border-bottom: 1px solid var(--warm-200);
+}
+
+.header-left {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.logo {
+  font-family: 'DM Serif Display', Georgia, serif;
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--teal-700);
+  letter-spacing: 0.02em;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 13px;
+  color: #909399;
+  font-family: 'DM Sans', system-ui, sans-serif;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.notification-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+:deep(.notification-bell .el-badge__content) {
+  background-color: var(--coral);
+  border: 2px solid #fff;
+}
+
+.bell-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--warm-100);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--warm-700);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.bell-icon:hover {
+  background: var(--warm-200);
+  color: var(--warm-900);
+}
+
+.user-info {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.user-name {
+  color: var(--warm-700);
+  font-weight: 500;
+}
 </style>

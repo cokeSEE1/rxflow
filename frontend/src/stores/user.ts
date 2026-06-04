@@ -4,6 +4,7 @@ import { login as loginApi, getMe } from '@/api/auth'
 import type { UserInfo } from '@/api/auth'
 
 export const useUserStore = defineStore('user', () => {
+  // 从 localstorage 恢复登录态（非 mock 模式无默认用户）
   const user = ref<UserInfo | null>(null)
   const token = ref(localStorage.getItem('accessToken') || '')
   const refreshToken = ref(localStorage.getItem('refreshToken') || '')
@@ -22,6 +23,7 @@ export const useUserStore = defineStore('user', () => {
 
   async function fetchUser() {
     if (!token.value) return
+
     user.value = await getMe()
   }
 
@@ -29,7 +31,8 @@ export const useUserStore = defineStore('user', () => {
     token.value = ''
     refreshToken.value = ''
     user.value = null
-    localStorage.clear()
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
   }
 
   return { user, token, refreshToken, isLoggedIn, role, login, fetchUser, logout }

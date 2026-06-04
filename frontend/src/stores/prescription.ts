@@ -23,16 +23,53 @@ export const usePrescriptionStore = defineStore('prescription', () => {
     return current.value
   }
 
-  async function create(data: any) { return api.createPrescription(data) }
-  async function update(id: number, data: any) { return api.updateDraft(id, data) }
-  async function remove(id: number) { await api.deleteDraft(id); await fetchList() }
-  async function submit(id: number) { await api.submitForReview(id); await fetchList() }
-  async function approve(id: number) { await api.approve(id); await fetchDetail(id) }
-  async function reject(id: number, reason: string, type: string) { await api.reject(id, reason, type); await fetchDetail(id) }
-  async function revoke(id: number, reason: string) { await api.revokeApproval(id, reason); await fetchDetail(id) }
-  async function pickup(id: number) { await api.pickup(id); await fetchDetail(id) }
-  async function deliver(id: number, proof: string) { await api.confirmDelivery(id, proof); await fetchDetail(id) }
-  async function reportEx(id: number, exType: string, desc: string, photo?: string) { await api.reportException(id, exType, desc, photo); await fetchDetail(id) }
+  async function create(data: any) {
+    return api.createPrescription(data)
+  }
+
+  async function update(id: number, data: any) {
+    return api.updateDraft(id, data)
+  }
+
+  async function remove(id: number) {
+    await api.deleteDraft(id)
+    await fetchList()
+  }
+
+  async function submit(id: number) {
+    await api.submitForReview(id)
+    await fetchList()
+  }
+
+  async function approve(id: number) {
+    await api.approve(id)
+    await fetchDetail(id)
+  }
+
+  async function reject(id: number, reason: string, type: string) {
+    await api.reject(id, reason, type)
+    await fetchDetail(id)
+  }
+
+  async function revoke(id: number, reason: string) {
+    await api.revokeApproval(id, reason)
+    await fetchDetail(id)
+  }
+
+  async function pickup(id: number) {
+    await api.pickup(id)
+    await fetchDetail(id)
+  }
+
+  async function deliver(id: number, proof: string) {
+    await api.confirmDelivery(id, proof)
+    await fetchDetail(id)
+  }
+
+  async function reportEx(id: number, exType: string, desc: string, photo?: string) {
+    await api.reportException(id, exType, desc, photo)
+    await fetchDetail(id)
+  }
 
   return { list, current, total, loading, fetchList, fetchDetail, create, update, remove, submit, approve, reject, revoke, pickup, deliver, reportEx }
 })

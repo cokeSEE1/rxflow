@@ -23,7 +23,10 @@ client.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       const refreshToken = localStorage.getItem('refreshToken')
       if (!refreshToken) {
-        localStorage.clear()
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+        // 使用 location.href 而非 router.push，因为 axios 实例在 Vue app 初始化前创建，
+        // 此时尚无法访问 router 实例。这在教学项目中是可接受的权衡。
         window.location.href = '/login'
         return Promise.reject(error)
       }
@@ -48,7 +51,10 @@ client.interceptors.response.use(
         originalRequest.headers.Authorization = `Bearer ${data.accessToken}`
         return client(originalRequest)
       } catch {
-        localStorage.clear()
+        localStorage.removeItem('accessToken')
+        localStorage.removeItem('refreshToken')
+        // 使用 location.href 而非 router.push，因为 axios 实例在 Vue app 初始化前创建，
+        // 此时尚无法访问 router 实例。这在教学项目中是可接受的权衡。
         window.location.href = '/login'
         return Promise.reject(error)
       } finally {

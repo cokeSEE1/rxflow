@@ -12,8 +12,8 @@ const statusMap: Record<string, { label: string; type: string }> = {
   pending:    { label: '待审核',   type: 'warning' },
   rejected:   { label: '已驳回',   type: 'danger' },
   approved:   { label: '已通过',   type: 'success' },
-  delivering: { label: '配送中',   type: '' },
-  received:   { label: '已签收',   type: '' },
+  delivering: { label: '配送中',   type: 'primary' },
+  received:   { label: '已签收',   type: 'success' },
   returned:   { label: '异常退回', type: 'danger' },
 }
 
