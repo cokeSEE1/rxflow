@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE `User` ADD COLUMN `lastLoginAt` DATETIME(3) NULL,
+    ADD COLUMN `lockedUntil` DATETIME(3) NULL,
+    ADD COLUMN `loginFailCount` INTEGER NOT NULL DEFAULT 0;

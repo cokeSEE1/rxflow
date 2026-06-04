@@ -6,16 +6,43 @@ import * as service from '../services/prescriptionService'
 const router = Router()
 router.use(auth)
 
+// ---- Collection-level routes (must come before /:id) ----
+
 router.get('/', async (req: Request, res: Response, next: NextFunction) => {
   try { res.json(await service.listPrescriptions(req.user!.role, req.user!.userId, req.query)) } catch (e) { next(e) }
 })
 
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
-  try { res.json(await service.getPrescription(parseInt(req.params.id), req.user!.role, req.user!.userId)) } catch (e) { next(e) }
-})
-
 router.post('/', requireRole('assistant'), async (req: Request, res: Response, next: NextFunction) => {
   try { res.status(201).json(await service.createPrescription({ ...req.body, assistantId: req.user!.userId })) } catch (e) { next(e) }
+})
+
+// Prescription Templates (assistant)
+router.get('/templates', requireRole('assistant'), async (req: Request, res: Response, next: NextFunction) => {
+  try { res.json(await service.getTemplates(req.user!.userId)) } catch (e) { next(e) }
+})
+
+router.post('/templates', requireRole('assistant'), async (req: Request, res: Response, next: NextFunction) => {
+  try { res.status(201).json(await service.saveTemplate(req.user!.userId, req.body.name, req.body.diagnosis, req.body.items)) } catch (e) { next(e) }
+})
+
+// Rejection Templates (doctor)
+router.get('/rejection-templates', requireRole('doctor'), async (req: Request, res: Response, next: NextFunction) => {
+  try { res.json(await service.getRejectionTemplates(req.user!.userId)) } catch (e) { next(e) }
+})
+
+router.post('/rejection-templates', requireRole('doctor'), async (req: Request, res: Response, next: NextFunction) => {
+  try { res.status(201).json(await service.saveRejectionTemplate(req.user!.userId, req.body.name, req.body.content)) } catch (e) { next(e) }
+})
+
+// Delivery Exceptions
+router.get('/exceptions/list', requireRole('courier'), async (req: Request, res: Response, next: NextFunction) => {
+  try { res.json(await service.getDeliveryExceptions(req.query as any)) } catch (e) { next(e) }
+})
+
+// ---- Single-prescription routes (/:id) ----
+
+router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+  try { res.json(await service.getPrescription(parseInt(req.params.id), req.user!.role, req.user!.userId)) } catch (e) { next(e) }
 })
 
 router.put('/:id', requireRole('assistant'), async (req: Request, res: Response, next: NextFunction) => {
@@ -37,6 +64,8 @@ router.delete('/:id', requireRole('assistant'), async (req: Request, res: Respon
   } catch (e) { next(e) }
 })
 
+// ---- Status transition actions ----
+
 router.post('/:id/submit', requireRole('assistant'), async (req: Request, res: Response, next: NextFunction) => {
   try { res.json(await service.submitForReview(parseInt(req.params.id), req.user!.userId)) } catch (e) { next(e) }
 })
@@ -54,23 +83,28 @@ router.post('/:id/revoke', requireRole('doctor'), async (req: Request, res: Resp
 })
 
 router.post('/:id/pickup', requireRole('courier'), async (req: Request, res: Response, next: NextFunction) => {
-  try { res.json(await service.pickup(parseInt(req.params.id), req.user!.userId)) } catch (e) { next(e) }
+  try { res.json(await service.pickup(parseInt(req.params.id), req.user!.userId, req.body.trackingNo)) } catch (e) { next(e) }
 })
 
 router.post('/:id/deliver', requireRole('courier'), async (req: Request, res: Response, next: NextFunction) => {
-  try { res.json(await service.confirmDelivery(parseInt(req.params.id), req.user!.userId, req.body.proof)) } catch (e) { next(e) }
+  try { res.json(await service.confirmDelivery(parseInt(req.params.id), req.user!.userId, req.body.proof, req.body.method)) } catch (e) { next(e) }
 })
 
 router.post('/:id/exception', requireRole('courier'), async (req: Request, res: Response, next: NextFunction) => {
   try { res.json(await service.reportException(parseInt(req.params.id), req.user!.userId, req.body.exType, req.body.desc, req.body.photo)) } catch (e) { next(e) }
 })
 
-router.post('/templates', requireRole('assistant'), async (req: Request, res: Response, next: NextFunction) => {
-  try { res.status(201).json(await service.saveTemplate(req.user!.userId, req.body.name, req.body.diagnosis, req.body.items)) } catch (e) { next(e) }
+router.post('/:id/redeliver', requireRole('courier'), async (req: Request, res: Response, next: NextFunction) => {
+  try { res.json(await service.requestRedelivery(parseInt(req.params.id), req.user!.userId, req.body.reason)) } catch (e) { next(e) }
 })
 
-router.get('/templates', requireRole('assistant'), async (req: Request, res: Response, next: NextFunction) => {
-  try { res.json(await service.getTemplates(req.user!.userId)) } catch (e) { next(e) }
+// SMS Verification
+router.post('/:id/sms-code', async (req: Request, res: Response, next: NextFunction) => {
+  try { res.json(await service.generateSmsCode(parseInt(req.params.id), req.body.phone)) } catch (e) { next(e) }
+})
+
+router.post('/:id/verify-sms', async (req: Request, res: Response, next: NextFunction) => {
+  try { res.json(await service.verifySmsCode(parseInt(req.params.id), req.body.phone, req.body.code)) } catch (e) { next(e) }
 })
 
 export default router

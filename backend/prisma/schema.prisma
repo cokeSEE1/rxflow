@@ -3,101 +3,244 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "mysql"
+  url      = env("DATABASE_URL")
 }
 
+// ============================================================
+// User — 系统用户（四角色）
+// ============================================================
 model User {
   id            Int       @id @default(autoincrement())
-  name          String
-  phone         String    @unique
-  passwordHash  String
-  role          String
+  name          String    @db.VarChar(50)
+  phone         String    @unique @db.VarChar(20)
+  passwordHash  String    @db.VarChar(255)
+  role          String    @db.VarChar(20)
+  avatar        String?   @db.VarChar(500)
   isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  loginFailCount Int      @default(0)
+  lockedUntil   DateTime?
   createdAt     DateTime  @default(now())
-  prescriptionsCreated Prescription[] @relation("AssistantPrescriptions")
-  prescriptionsReviewed Prescription[] @relation("DoctorPrescriptions")
-  prescriptionsDelivered Prescription[] @relation("CourierDeliveries")
-  notifications Notification[]
+  updatedAt     DateTime  @updatedAt
+
+  prescriptionsCreated   Prescription[]  @relation("AssistantPrescriptions")
+  prescriptionsReviewed  Prescription[]  @relation("DoctorPrescriptions")
+  prescriptionsDelivered Prescription[]  @relation("CourierDeliveries")
+  notifiedById           Prescription[]  @relation("RejectedByDoctor")
+  courierExceptions      DeliveryException[]
+  rejectionTemplates     RejectionTemplate[]
+  notifications          Notification[]
+
+  @@index([role])
 }
 
+// ============================================================
+// Patient — 患者信息
+// ============================================================
 model Patient {
   id             Int       @id @default(autoincrement())
-  name           String
-  gender         String
+  name           String    @db.VarChar(50)
+  gender         String    @db.VarChar(10)
   age            Int?
-  phone          String
-  address        String
-  idCard         String?
-  allergyHistory String?
+  phone          String    @db.VarChar(20)
+  address        String    @db.VarChar(500)
+  idCard         String?   @db.VarChar(255)
+  allergyHistory String?   @db.Text
   createdAt      DateTime  @default(now())
-  prescriptions  Prescription[]
+  updatedAt      DateTime  @updatedAt
+  createdBy      Int?
+
+  prescriptions Prescription[]
+
+  @@index([phone])
+  @@index([name])
 }
 
+// ============================================================
+// Prescription — 处方主表
+// ============================================================
 model Prescription {
   id              Int       @id @default(autoincrement())
-  prescriptionNo  String    @unique
+  prescriptionNo  String    @unique @db.VarChar(50)
   patientId       Int
   patient         Patient   @relation(fields: [patientId], references: [id])
   assistantId     Int
   assistant       User      @relation("AssistantPrescriptions", fields: [assistantId], references: [id])
   doctorId        Int?
   doctor          User?     @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
-  diagnosis       String
-  status          String    @default("draft")
-  rejectedReason  String?
-  rejectedType    String?
+  diagnosis       String    @db.Text
+  status          String    @default("draft") @db.VarChar(20)
+  rejectedReason  String?   @db.Text
+  rejectedType    String?   @db.VarChar(20)
+  rejectedById    Int?
+  rejectedBy      User?     @relation("RejectedByDoctor", fields: [rejectedById], references: [id])
   courierId       Int?
   courier         User?     @relation("CourierDeliveries", fields: [courierId], references: [id])
-  trackingNo      String?
-  deliveryProof   String?
-  note            String?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  items           PrescriptionItem[]
-  timeline        PrescriptionTimeline[]
+  trackingNo      String?   @db.VarChar(100)
+  deliveryProof   String?   @db.VarChar(500)
+  deliveryMethod  String?   @db.VarChar(20)
+  note            String?   @db.Text
+
+  // ---- 状态时间戳（精确记录每一步发生时间） ----
+  submittedAt    DateTime?
+  approvedAt     DateTime?
+  rejectedAt     DateTime?
+  pickedUpAt     DateTime?
+  deliveredAt    DateTime?
+  returnedAt     DateTime?
+  revokedAt      DateTime?
+
+  // ---- 重提交标识 ----
+  isResubmit    Boolean  @default(false)
+  resubmitCount Int      @default(0)
+
+  // ---- 配送增强 ----
+  estimatedDelivery      DateTime?
+  redeliverRequestedBy   Int?
+  redeliverRequestedAt   DateTime?
+  redeliverReason        String?   @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items          PrescriptionItem[]
+  timeline       PrescriptionTimeline[]
+  smsVerifications SmsVerification[]
+  deliveryExceptions DeliveryException[]
+
+  @@index([status])
+  @@index([patientId])
+  @@index([assistantId])
+  @@index([doctorId])
+  @@index([courierId])
+  @@index([submittedAt])
+  @@index([approvedAt])
 }
 
+// ============================================================
+// PrescriptionItem — 处方药品明细
+// ============================================================
 model PrescriptionItem {
-  id             Int      @id @default(autoincrement())
-  prescriptionId Int
-  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
-  drugName       String
-  specification  String
-  dosage         String
-  frequency      String
-  days           Int
-  remark         String?
+  id                Int      @id @default(autoincrement())
+  prescriptionId    Int
+  prescription      Prescription @relation(fields: [prescriptionId], references: [id])
+  drugName          String   @db.VarChar(200)
+  specification     String   @db.VarChar(100)
+  dosage            String   @db.VarChar(50)
+  frequency         String   @db.VarChar(20)
+  days              Int
+  remark            String?  @db.VarChar(500)
+  doctorAnnotation  String?  @db.Text
+
+  @@index([prescriptionId])
 }
 
+// ============================================================
+// PrescriptionTimeline — 处方状态时间线
+// ============================================================
 model PrescriptionTimeline {
-  id             Int      @id @default(autoincrement())
-  prescriptionId Int
-  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
-  action         String
-  operatorId     Int
-  operatorName   String
-  detail         String?
-  createdAt      DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  prescriptionId  Int
+  prescription    Prescription @relation(fields: [prescriptionId], references: [id])
+  action          String   @db.VarChar(50)
+  operatorId      Int
+  operatorName    String   @db.VarChar(50)
+  detail          String?  @db.Text
+  metadata        String?  @db.Text
+  createdAt       DateTime @default(now())
+
+  @@index([prescriptionId])
+  @@index([createdAt])
 }
 
+// ============================================================
+// PrescriptionTemplate — 处方模板
+// ============================================================
 model PrescriptionTemplate {
   id          Int      @id @default(autoincrement())
   assistantId Int
-  name        String
-  diagnosis   String
-  items       String
+  name        String   @db.VarChar(100)
+  diagnosis   String   @db.Text
+  items       String   @db.Text
+  usageCount  Int      @default(0)
   createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([assistantId])
 }
 
+// ============================================================
+// Notification — 站内通知
+// ============================================================
 model Notification {
-  id             Int      @id @default(autoincrement())
+  id             Int       @id @default(autoincrement())
   userId         Int
-  user           User     @relation(fields: [userId], references: [id])
-  type           String
-  title          String
-  content        String
-  isRead         Boolean  @default(false)
+  user           User      @relation(fields: [userId], references: [id])
+  type           String    @db.VarChar(50)
+  title          String    @db.VarChar(200)
+  content        String    @db.Text
+  isRead         Boolean   @default(false)
+  readAt         DateTime?
   prescriptionId Int?
-  createdAt      DateTime @default(now())
+  createdAt      DateTime  @default(now())
+
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
+
+// ============================================================
+// SmsVerification — 签收短信验证码（新表）
+// ============================================================
+model SmsVerification {
+  id             Int       @id @default(autoincrement())
+  prescriptionId Int
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+  phone          String    @db.VarChar(20)
+  code           String    @db.VarChar(10)
+  expiresAt      DateTime
+  isVerified     Boolean   @default(false)
+  verifiedAt     DateTime?
+  attemptCount   Int       @default(0)
+  createdAt      DateTime  @default(now())
+
+  @@index([prescriptionId])
+  @@index([expiresAt])
+}
+
+// ============================================================
+// DeliveryException — 配送异常记录（新表）
+// ============================================================
+model DeliveryException {
+  id             Int       @id @default(autoincrement())
+  prescriptionId Int
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+  courierId      Int
+  courier        User      @relation(fields: [courierId], references: [id])
+  type           String    @db.VarChar(30)
+  description    String    @db.Text
+  photo          String?   @db.VarChar(500)
+  isResolved     Boolean   @default(false)
+  resolvedAt     DateTime?
+  resolvedById   Int?
+  createdAt      DateTime  @default(now())
+
+  @@index([prescriptionId])
+  @@index([courierId])
+  @@index([type])
+}
+
+// ============================================================
+// RejectionTemplate — 医生驳回模板（新表）
+// ============================================================
+model RejectionTemplate {
+  id         Int      @id @default(autoincrement())
+  doctorId   Int
+  doctor     User     @relation(fields: [doctorId], references: [id])
+  name       String   @db.VarChar(100)
+  content    String   @db.Text
+  usageCount Int      @default(0)
+  createdAt  DateTime @default(now())
+
+  @@index([doctorId])
 }

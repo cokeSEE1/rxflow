@@ -106,8 +106,21 @@ export async function submitForReview(id: number, assistantId: number) {
   return prisma.prescription.update({
     where: { id },
     data: {
-      status: 'pending', rejectedReason: null, rejectedType: null,
-      timeline: { create: { action: isResubmit ? 'resubmitted' : 'submitted', operatorId: assistantId, operatorName: assistant?.name || '', detail: isResubmit ? '修改后重新提交' : '提交审核' } },
+      status: 'pending',
+      rejectedReason: null,
+      rejectedType: null,
+      rejectedById: null,
+      submittedAt: new Date(),
+      isResubmit,
+      resubmitCount: isResubmit ? p.resubmitCount + 1 : p.resubmitCount,
+      timeline: {
+        create: {
+          action: isResubmit ? 'resubmitted' : 'submitted',
+          operatorId: assistantId,
+          operatorName: assistant?.name || '',
+          detail: isResubmit ? '修改后重新提交' : '提交审核',
+        },
+      },
     },
   })
 }
@@ -119,7 +132,14 @@ export async function approve(id: number, doctorId: number) {
   const doctor = await prisma.user.findUnique({ where: { id: doctorId } })
   return prisma.prescription.update({
     where: { id },
-    data: { status: 'approved', doctorId, timeline: { create: { action: 'approved', operatorId: doctorId, operatorName: doctor?.name || '', detail: '审核通过' } } },
+    data: {
+      status: 'approved',
+      doctorId,
+      approvedAt: new Date(),
+      timeline: {
+        create: { action: 'approved', operatorId: doctorId, operatorName: doctor?.name || '', detail: '审核通过' },
+      },
+    },
   })
 }
 
@@ -132,7 +152,23 @@ export async function reject(id: number, doctorId: number, reason: string, type:
   const doctor = await prisma.user.findUnique({ where: { id: doctorId } })
   return prisma.prescription.update({
     where: { id },
-    data: { status: 'rejected', doctorId, rejectedReason: reason, rejectedType: type, timeline: { create: { action: 'rejected', operatorId: doctorId, operatorName: doctor?.name || '', detail: reason } } },
+    data: {
+      status: 'rejected',
+      doctorId,
+      rejectedById: doctorId,
+      rejectedReason: reason,
+      rejectedType: type,
+      rejectedAt: new Date(),
+      timeline: {
+        create: {
+          action: 'rejected',
+          operatorId: doctorId,
+          operatorName: doctor?.name || '',
+          detail: reason,
+          metadata: JSON.stringify({ type }),
+        },
+      },
+    },
   })
 }
 
@@ -140,27 +176,45 @@ export async function revokeApproval(id: number, doctorId: number, reason: strin
   const p = await prisma.prescription.findUnique({ where: { id } })
   if (!p) throw new AppError(404, '处方不存在')
   if (p.status !== 'approved') throw new AppError(400, '当前状态不可撤回')
-  const elapsed = Date.now() - p.updatedAt.getTime()
+  if (!p.approvedAt) throw new AppError(400, '审核时间异常，无法判断撤回窗口')
+  const elapsed = Date.now() - p.approvedAt.getTime()
   if (elapsed > 30 * 60 * 1000) throw new AppError(400, '审核通过超过30分钟，不可撤回')
   const doctor = await prisma.user.findUnique({ where: { id: doctorId } })
   return prisma.prescription.update({
     where: { id },
-    data: { status: 'pending', doctorId: null, timeline: { create: { action: 'revoked', operatorId: doctorId, operatorName: doctor?.name || '', detail: reason } } },
+    data: {
+      status: 'pending',
+      doctorId: null,
+      approvedAt: null,
+      revokedAt: new Date(),
+      timeline: {
+        create: { action: 'revoked', operatorId: doctorId, operatorName: doctor?.name || '', detail: reason },
+      },
+    },
   })
 }
 
-export async function pickup(id: number, courierId: number) {
+export async function pickup(id: number, courierId: number, trackingNo?: string) {
   const p = await prisma.prescription.findUnique({ where: { id } })
   if (!p) throw new AppError(404, '处方不存在')
   if (p.status !== 'approved') throw new AppError(400, '当前状态不可取件')
   const courier = await prisma.user.findUnique({ where: { id: courierId } })
   return prisma.prescription.update({
     where: { id },
-    data: { status: 'delivering', courierId, timeline: { create: { action: 'picked_up', operatorId: courierId, operatorName: courier?.name || '', detail: '快递员取件' } } },
+    data: {
+      status: 'delivering',
+      courierId,
+      trackingNo: trackingNo || p.trackingNo,
+      pickedUpAt: new Date(),
+      estimatedDelivery: new Date(Date.now() + 2 * 60 * 60 * 1000),
+      timeline: {
+        create: { action: 'picked_up', operatorId: courierId, operatorName: courier?.name || '', detail: '快递员取件' },
+      },
+    },
   })
 }
 
-export async function confirmDelivery(id: number, courierId: number, proof: string) {
+export async function confirmDelivery(id: number, courierId: number, proof: string, method: string = 'photo') {
   const p = await prisma.prescription.findUnique({ where: { id } })
   if (!p) throw new AppError(404, '处方不存在')
   if (p.status !== 'delivering') throw new AppError(400, '当前状态不可签收')
@@ -168,7 +222,15 @@ export async function confirmDelivery(id: number, courierId: number, proof: stri
   const courier = await prisma.user.findUnique({ where: { id: courierId } })
   return prisma.prescription.update({
     where: { id },
-    data: { status: 'received', deliveryProof: proof, timeline: { create: { action: 'delivered', operatorId: courierId, operatorName: courier?.name || '', detail: '患者签收' } } },
+    data: {
+      status: 'received',
+      deliveryProof: proof,
+      deliveryMethod: method,
+      deliveredAt: new Date(),
+      timeline: {
+        create: { action: 'delivered', operatorId: courierId, operatorName: courier?.name || '', detail: '患者签收' },
+      },
+    },
   })
 }
 
@@ -182,16 +244,147 @@ export async function reportException(id: number, courierId: number, exType: str
   if (p.status !== 'delivering') throw new AppError(400, '当前状态不可上报异常')
   const typeLabels: Record<string, string> = { patient_reject: '患者拒收', wrong_address: '地址错误', unreachable: '联系不上', damaged: '药品破损' }
   const courier = await prisma.user.findUnique({ where: { id: courierId } })
+
+  const [updated] = await Promise.all([
+    prisma.prescription.update({
+      where: { id },
+      data: {
+        status: 'returned',
+        deliveryProof: photo || p.deliveryProof,
+        returnedAt: new Date(),
+        timeline: {
+          create: {
+            action: 'returned',
+            operatorId: courierId,
+            operatorName: courier?.name || '',
+            detail: `${typeLabels[exType]}: ${desc}`,
+            metadata: JSON.stringify({ type: exType, photo }),
+          },
+        },
+      },
+    }),
+    prisma.deliveryException.create({
+      data: {
+        prescriptionId: id,
+        courierId,
+        type: exType,
+        description: desc,
+        photo: photo || null,
+      },
+    }),
+  ])
+  return updated
+}
+
+export async function requestRedelivery(id: number, requestedBy: number, reason: string) {
+  const p = await prisma.prescription.findUnique({ where: { id } })
+  if (!p) throw new AppError(404, '处方不存在')
+  if (p.status !== 'returned' && p.status !== 'received') throw new AppError(400, '当前状态不可重新配送')
   return prisma.prescription.update({
     where: { id },
-    data: { status: 'returned', deliveryProof: photo || p.deliveryProof, timeline: { create: { action: 'returned', operatorId: courierId, operatorName: courier?.name || '', detail: `${typeLabels[exType]}: ${desc}` } } },
+    data: {
+      status: 'approved',
+      redeliverRequestedBy: requestedBy,
+      redeliverRequestedAt: new Date(),
+      redeliverReason: reason,
+      courierId: null,
+      trackingNo: null,
+      deliveryProof: null,
+      deliveryMethod: null,
+      pickedUpAt: null,
+      deliveredAt: null,
+      returnedAt: null,
+      timeline: {
+        create: {
+          action: 'redeliver_requested',
+          operatorId: requestedBy,
+          operatorName: '',
+          detail: `重新配送: ${reason}`,
+        },
+      },
+    },
+  })
+}
+
+export async function generateSmsCode(prescriptionId: number, phone: string) {
+  const p = await prisma.prescription.findUnique({ where: { id: prescriptionId } })
+  if (!p) throw new AppError(404, '处方不存在')
+  if (p.status !== 'delivering') throw new AppError(400, '当前状态不可生成验证码')
+  const code = String(Math.floor(100000 + Math.random() * 900000))
+  return prisma.smsVerification.create({
+    data: {
+      prescriptionId,
+      phone,
+      code,
+      expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+    },
+  })
+}
+
+export async function verifySmsCode(prescriptionId: number, phone: string, code: string) {
+  const record = await prisma.smsVerification.findFirst({
+    where: { prescriptionId, phone, isVerified: false },
+    orderBy: { createdAt: 'desc' },
+  })
+  if (!record) throw new AppError(404, '未找到验证码记录，请先生成验证码')
+  if (record.attemptCount >= 3) throw new AppError(400, '验证次数已达上限，请重新生成验证码')
+  if (new Date() > record.expiresAt) throw new AppError(400, '验证码已过期，请重新生成')
+
+  await prisma.smsVerification.update({
+    where: { id: record.id },
+    data: { attemptCount: record.attemptCount + 1 },
+  })
+
+  if (record.code !== code) {
+    throw new AppError(400, `验证码错误，剩余尝试次数: ${2 - record.attemptCount}`)
+  }
+
+  await prisma.smsVerification.update({
+    where: { id: record.id },
+    data: { isVerified: true, verifiedAt: new Date() },
+  })
+
+  return { verified: true }
+}
+
+export async function getDeliveryExceptions(query: { isResolved?: boolean; type?: string }) {
+  const where: any = {}
+  if (query.isResolved !== undefined) where.isResolved = query.isResolved
+  if (query.type) where.type = query.type
+  return prisma.deliveryException.findMany({
+    where,
+    include: {
+      prescription: { select: { prescriptionNo: true, patient: { select: { name: true } } } },
+      courier: { select: { name: true, phone: true } },
+    },
+    orderBy: { createdAt: 'desc' },
   })
 }
 
 export async function saveTemplate(assistantId: number, name: string, diagnosis: string, items: any[]) {
-  return prisma.prescriptionTemplate.create({ data: { assistantId, name, diagnosis, items: JSON.stringify(items) } })
+  return prisma.prescriptionTemplate.create({
+    data: { assistantId, name, diagnosis, items: JSON.stringify(items) },
+  })
 }
 
 export async function getTemplates(assistantId: number) {
   return prisma.prescriptionTemplate.findMany({ where: { assistantId }, orderBy: { createdAt: 'desc' } })
+}
+
+export async function saveRejectionTemplate(doctorId: number, name: string, content: string) {
+  return prisma.rejectionTemplate.create({ data: { doctorId, name, content } })
+}
+
+export async function getRejectionTemplates(doctorId: number) {
+  return prisma.rejectionTemplate.findMany({
+    where: { doctorId },
+    orderBy: { usageCount: 'desc' },
+  })
+}
+
+export async function useRejectionTemplate(id: number, doctorId: number) {
+  const tmpl = await prisma.rejectionTemplate.findUnique({ where: { id } })
+  if (!tmpl || tmpl.doctorId !== doctorId) throw new AppError(404, '模板不存在')
+  await prisma.rejectionTemplate.update({ where: { id }, data: { usageCount: tmpl.usageCount + 1 } })
+  return tmpl
 }
