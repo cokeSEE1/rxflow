@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RxFlow — 新建处方</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-900: #134e4a; --teal-700: #0f766e; --teal-500: #14b8a6; --teal-100: #ccfbf1; --teal-50: #f0fdfa;
+    --coral: #f43f5e; --coral-50: #fff1f2; --amber: #f59e0b; --amber-50: #fffbeb;
+    --warm-50: #fafaf9; --warm-100: #f5f5f4; --warm-200: #e7e5e4; --warm-300: #d6d3d1; --warm-700: #44403c; --warm-900: #1c1917;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--warm-50); color: var(--warm-900);
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  .sidebar {
+    width: 220px; background: linear-gradient(180deg, #0d5c56 0%, var(--teal-900) 100%);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 32px; font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 24px; color: #fff; letter-spacing: -0.3px;
+  }
+  .sidebar-brand span { color: var(--teal-500); }
+  .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; margin: 2px 8px;
+    border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nav-item.active { color: #fff; background: rgba(255,255,255,0.12); font-weight: 600; }
+  .nav-item { transition: all 0.25s ease; }
+  .sidebar-role-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8);
+    margin: 10px 20px 0;
+  }
+  .sidebar-user {
+    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px; margin-top: auto;
+  }
+  .sidebar-user .avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--teal-700); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+  }
+  .sidebar-user .name { font-size: 13px; color: #fff; font-weight: 500; }
+  .sidebar-user .role { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .header {
+    height: 56px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-bottom: 1px solid var(--warm-200); flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; }
+  .btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--teal-700); color: #fff; }
+  .btn-primary:hover { background: var(--teal-900); }
+  .btn-outline { background: #fff; color: var(--warm-700); border: 1.5px solid var(--warm-200); }
+  .btn-outline:hover { border-color: var(--warm-300); }
+  .btn-danger { background: var(--coral); color: #fff; }
+  .btn-danger:hover { background: #e11d48; }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+  .card {
+    background: #fff; border-radius: 12px; padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+  }
+  .card h3 {
+    font-family: 'DM Serif Display', Georgia, serif; font-size: 16px;
+    margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--warm-100);
+  }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; margin-bottom: 16px; }
+  .form-row.col-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group { }
+  .form-group label {
+    display: block; font-size: 11px; font-weight: 600; color: var(--warm-700);
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;
+  }
+  .form-group label .required { color: var(--coral); margin-left: 2px; }
+  .form-group select, .form-group input, .form-group textarea {
+    width: 100%; padding: 9px 14px; border: 1.5px solid var(--warm-200); border-radius: 8px;
+    font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; background: #fff;
+    transition: border-color 0.15s;
+  }
+  .form-group select:focus, .form-group input:focus, .form-group textarea:focus { border-color: var(--teal-500); }
+  .form-group textarea { resize: vertical; min-height: 80px; }
+
+  /* Drug selector */
+  .drug-selector { }
+  .drug-row {
+    display: flex; align-items: center; gap: 12px; padding: 12px 0;
+    border-bottom: 1px solid var(--warm-100);
+  }
+  .drug-row:last-child { border-bottom: none; }
+  .drug-row .drug-name { flex: 2; }
+  .drug-row .drug-spec { flex: 1.5; }
+  .drug-row .drug-dosage { flex: 0.8; }
+  .drug-row .drug-freq { flex: 0.8; }
+  .drug-row .drug-days { flex: 0.6; }
+  .drug-row .drug-remark { flex: 1.2; }
+  .drug-row .drug-remove { flex: 0 0 32px; }
+  .drug-row select, .drug-row input {
+    width: 100%; padding: 8px 10px; border: 1.5px solid var(--warm-200); border-radius: 6px;
+    font-size: 12px; font-family: 'DM Sans', sans-serif; outline: none; background: #fff;
+  }
+  .drug-row select:focus, .drug-row input:focus { border-color: var(--teal-500); }
+  .remove-btn {
+    width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--warm-200);
+    background: #fff; color: var(--coral); cursor: pointer; font-size: 16px;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+  }
+  .remove-btn:hover { background: var(--coral-50); border-color: var(--coral); }
+
+  .add-drug-btn {
+    margin-top: 12px; padding: 8px 16px; border: 1.5px dashed var(--warm-200); border-radius: 8px;
+    background: var(--warm-50); color: var(--teal-700); font-size: 12px; font-weight: 500; cursor: pointer;
+    width: 100%; text-align: center; transition: all 0.15s; font-family: 'DM Sans', sans-serif;
+  }
+  .add-drug-btn:hover { border-color: var(--teal-500); background: var(--teal-50); }
+
+  /* Patient quick card */
+  .patient-quick {
+    display: flex; align-items: center; gap: 10px; padding: 12px;
+    background: var(--warm-50); border-radius: 8px; border: 1px solid var(--warm-200);
+  }
+  .patient-quick .pq-avatar {
+    width: 40px; height: 40px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 600; flex-shrink: 0;
+  }
+  .patient-quick .pq-info { flex: 1; }
+  .patient-quick .pq-name { font-weight: 600; font-size: 14px; }
+  .patient-quick .pq-meta { font-size: 11px; color: var(--warm-700); }
+  .patient-quick .pq-allergy { font-size: 11px; color: var(--coral); font-weight: 500; }
+
+  /* Draft indicator */
+  .draft-bar {
+    display: flex; align-items: center; gap: 8px; padding: 10px 16px;
+    background: var(--amber-50); border-radius: 8px; font-size: 12px; color: #92400e;
+    margin-bottom: 20px;
+  }
+  .draft-bar .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .card { animation: slideIn 0.4s ease-out both; }
+  .card:nth-child(2) { animation-delay: 0.05s; }
+  .card:nth-child(3) { animation-delay: 0.1s; }
+
+  /* Section header with inline buttons */
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid var(--warm-100); }
+  .section-header h3 { margin-bottom: 0; padding-bottom: 0; border-bottom: none; font-family: 'DM Serif Display', Georgia, serif; font-size: 16px; }
+  .section-header .spacer { flex: 1; }
+  .btn-sm {
+    padding: 4px 12px; border-radius: 6px; font-size: 11px; font-weight: 500;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn-sm-outline { background: #fff; color: var(--warm-700); border: 1.5px solid var(--warm-200); }
+  .btn-sm-outline:hover { border-color: var(--teal-500); color: var(--teal-700); background: var(--teal-50); }
+  .btn-sm-fill { background: var(--teal-50); color: var(--teal-700); border: 1.5px solid var(--teal-100); }
+  .btn-sm-fill:hover { background: var(--teal-100); }
+
+  /* Template dropdown */
+  .template-dropdown-wrap { position: relative; display: inline-block; }
+  .template-dropdown {
+    display: none; position: absolute; top: calc(100% + 4px); left: 0; z-index: 10;
+    background: #fff; border-radius: 8px; box-shadow: 0 4px 16px rgba(0,0,0,0.12); border: 1px solid var(--warm-200);
+    min-width: 200px; overflow: hidden;
+  }
+  .template-dropdown.show { display: block; }
+  .template-dropdown .td-item {
+    padding: 10px 14px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--warm-100);
+    transition: background 0.1s;
+  }
+  .template-dropdown .td-item:last-child { border-bottom: none; }
+  .template-dropdown .td-item:hover { background: var(--teal-50); }
+
+  /* Modal */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0; z-index: 50;
+    background: rgba(0,0,0,0.3); align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal-box {
+    background: #fff; border-radius: 12px; padding: 24px; width: 360px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.15);
+  }
+  .modal-box h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 16px; margin-bottom: 16px; }
+  .modal-box .form-group { margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* Drawer */
+  .drawer-overlay {
+    display: none; position: fixed; inset: 0; z-index: 40;
+    background: rgba(0,0,0,0.3); transition: opacity 0.3s;
+  }
+  .drawer-overlay.show { display: block; }
+  .drawer-panel {
+    position: fixed; top: 0; right: 0; width: 420px; height: 100vh;
+    background: #fff; z-index: 41; box-shadow: -4px 0 24px rgba(0,0,0,0.1);
+    transform: translateX(100%); transition: transform 0.3s ease-out;
+    display: flex; flex-direction: column;
+  }
+  .drawer-panel.show { transform: translateX(0); }
+  .drawer-header {
+    padding: 20px 24px; border-bottom: 1px solid var(--warm-200);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .drawer-header h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 18px; }
+  .drawer-close {
+    width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--warm-200);
+    background: #fff; cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
+    color: var(--warm-700); transition: all 0.15s;
+  }
+  .drawer-close:hover { background: var(--warm-50); }
+  .drawer-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+  .drawer-body .form-group { margin-bottom: 14px; }
+  .drawer-footer {
+    padding: 16px 24px; border-top: 1px solid var(--warm-200);
+    display: flex; gap: 8px; justify-content: flex-end;
+  }
+
+  /* Flash animation for draft bar */
+  @keyframes draftFlash {
+    0% { background: var(--amber-50); }
+    50% { background: #fef3c7; box-shadow: 0 0 8px rgba(245,158,11,0.2); }
+    100% { background: var(--amber-50); }
+  }
+  .draft-bar.flash { animation: draftFlash 0.6s ease-out; }
+
+  /* Drug section title */
+  .drug-title-row { display: flex; align-items: center; gap: 8px; }
+  .drug-count { font-size: 13px; font-weight: 500; color: var(--teal-700); background: var(--teal-50); padding: 2px 10px; border-radius: 20px; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" data-role="assistant">
+  <div class="sidebar-brand">Rx<span>Flow</span></div>
+  <div class="sidebar-role-tag">👨‍💼 医生助理视角</div>
+  <nav id="sidebarNav"></nav>
+  <div class="sidebar-user">
+    <div class="avatar" id="sidebarAvatar">李</div>
+    <div><div class="name" id="sidebarName">李助理</div><div class="role" id="sidebarRole">医生助理</div></div>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">新建处方</h1>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-outline">保存草稿</button>
+      <button class="btn btn-primary">提交审核</button>
+    </div>
+  </header>
+
+  <div class="content" style="max-width:860px;">
+    <div class="draft-bar" id="draftBar">
+      <span class="dot"></span> <span id="draftText">草稿已自动保存 · 最后保存时间 10:32:15</span>
+    </div>
+
+    <!-- Patient selection -->
+    <div class="card">
+      <h3>选择患者</h3>
+      <div style="display:flex;gap:12px;margin-bottom:16px;">
+        <div class="form-group" style="flex:1;">
+          <label for="patientSearch" style="display:block;font-size:11px;font-weight:600;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">搜索患者</label>
+          <input type="text" id="patientSearch" placeholder="搜索患者姓名或手机号..." style="width:100%;">
+        </div>
+        <button class="btn btn-outline" style="flex-shrink:0;" id="btnNewPatient">+ 新建患者</button>
+      </div>
+      <div class="patient-quick" id="patientQuickCard">
+        <div class="pq-avatar" id="pqAvatar">赵</div>
+        <div class="pq-info">
+          <div class="pq-name" id="pqName">赵建国</div>
+          <div class="pq-meta" id="pqMeta">男 · 62岁 · 138****4444</div>
+        </div>
+        <div class="pq-allergy" id="pqAllergy">⚠ 青霉素过敏</div>
+      </div>
+    </div>
+
+    <!-- Diagnosis -->
+    <div class="card">
+      <div class="section-header">
+        <h3>诊断信息</h3>
+        <div class="spacer"></div>
+        <div class="template-dropdown-wrap">
+          <button class="btn-sm btn-sm-outline" id="btnLoadTemplate">📋 加载模板</button>
+          <div class="template-dropdown" id="templateDropdown">
+            <div class="td-item" data-template="hypertension">高血压复诊</div>
+            <div class="td-item" data-template="uri">上呼吸道感染</div>
+            <div class="td-item" data-template="diabetes">糖尿病常规</div>
+          </div>
+        </div>
+        <button class="btn-sm btn-sm-fill" id="btnSaveTemplate">💾 保存为模板</button>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="grid-column:1/-1;">
+          <label for="diagnosisText">诊断描述 <span class="required">*</span></label>
+          <textarea id="diagnosisText" placeholder="请输入诊断描述...">高血压病 2 级，规律服药，血压控制可</textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Drug items -->
+    <div class="card">
+      <div class="section-header">
+        <div class="drug-title-row">
+          <h3>处方明细</h3>
+          <span class="drug-count" id="drugCount">共 2 种药品</span>
+        </div>
+      </div>
+      <div class="drug-selector" id="drugSelector">
+        <div class="drug-row drug-header" style="font-size:10px;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;padding-bottom:8px;">
+          <span class="drug-name">药品名称</span>
+          <span class="drug-spec">规格</span>
+          <span class="drug-dosage">用量</span>
+          <span class="drug-freq">频次</span>
+          <span class="drug-days">天数</span>
+          <span class="drug-remark">备注</span>
+          <span class="drug-remove"></span>
+        </div>
+        <div class="drug-row drug-data-row">
+          <select class="drug-name">
+            <option>硝苯地平控释片</option>
+            <option>厄贝沙坦片</option>
+            <option>盐酸二甲双胍片</option>
+            <option>阿托伐他汀钙片</option>
+            <option>阿司匹林肠溶片</option>
+          </select>
+          <select class="drug-spec"><option>30mg × 7片</option><option>30mg × 14片</option></select>
+          <input class="drug-dosage" value="1片" placeholder="用量">
+          <select class="drug-freq"><option>qd</option><option>bid</option><option>tid</option></select>
+          <input class="drug-days" value="7" placeholder="天数">
+          <input class="drug-remark" value="" placeholder="备注">
+          <button class="remove-btn drug-remove-btn">×</button>
+        </div>
+        <div class="drug-row drug-data-row">
+          <select class="drug-name">
+            <option>厄贝沙坦片</option>
+            <option>硝苯地平控释片</option>
+            <option>盐酸二甲双胍片</option>
+          </select>
+          <select class="drug-spec"><option>150mg × 7片</option><option>150mg × 14片</option></select>
+          <input class="drug-dosage" value="1片" placeholder="用量">
+          <select class="drug-freq"><option>qd</option><option>bid</option></select>
+          <input class="drug-days" value="7" placeholder="天数">
+          <input class="drug-remark" value="" placeholder="备注">
+          <button class="remove-btn drug-remove-btn">×</button>
+        </div>
+      </div>
+      <button class="add-drug-btn" id="btnAddDrug">+ 添加药品</button>
+    </div>
+
+    <!-- Remarks -->
+    <div class="card">
+      <h3>备注</h3>
+      <div class="form-group">
+        <label for="remarkText">备注说明</label>
+        <textarea id="remarkText" placeholder="配送地址、用药提醒等补充信息...">患者要求配送至望京西园地址。定期复诊患者，病情稳定。</textarea>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button class="btn btn-outline">保存草稿</button>
+      <button class="btn btn-primary">提交审核</button>
+    </div>
+  </div>
+</div>
+
+<!-- Save Template Modal -->
+<div class="modal-overlay" id="saveTemplateModal">
+  <div class="modal-box">
+    <h3>保存为模板</h3>
+    <div class="form-group">
+      <label>模板名称 <span class="required">*</span></label>
+      <input type="text" id="templateNameInput" placeholder="请输入模板名称...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="btnCancelSave">取消</button>
+      <button class="btn btn-primary" id="btnConfirmSave">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Patient Drawer -->
+<div class="drawer-overlay" id="drawerOverlay"></div>
+<div class="drawer-panel" id="drawerPanel">
+  <div class="drawer-header">
+    <h2>新建患者</h2>
+    <button class="drawer-close" id="btnDrawerClose">×</button>
+  </div>
+  <div class="drawer-body">
+    <div class="form-group">
+      <label for="patientName">姓名 <span class="required">*</span></label>
+      <input type="text" id="patientName" placeholder="请输入姓名">
+    </div>
+    <div class="form-group">
+      <label for="patientGender">性别</label>
+      <select id="patientGender">
+        <option value="M">男</option>
+        <option value="F">女</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="patientAge">年龄</label>
+      <input type="number" id="patientAge" placeholder="请输入年龄" min="0" max="150">
+    </div>
+    <div class="form-group">
+      <label for="patientPhone">手机号 <span class="required">*</span></label>
+      <input type="text" id="patientPhone" placeholder="请输入手机号">
+    </div>
+    <div class="form-group">
+      <label for="patientAddress">地址 <span class="required">*</span></label>
+      <input type="text" id="patientAddress" placeholder="请输入地址">
+    </div>
+    <div class="form-group">
+      <label for="patientIdCard">身份证号</label>
+      <input type="text" id="patientIdCard" placeholder="请输入身份证号">
+    </div>
+    <div class="form-group">
+      <label for="patientAllergy">过敏史 <span class="required" style="color:var(--coral);">必填</span></label>
+      <textarea id="patientAllergy" placeholder="请输入过敏史（若无请填"无"）"></textarea>
+    </div>
+  </div>
+  <div class="drawer-footer">
+    <button class="btn btn-outline" id="btnCancelPatient">取消</button>
+    <button class="btn btn-primary" id="btnConfirmPatient">确认添加</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  // =========================================================================
+  // 1. Template Load / Save
+  // =========================================================================
+  var templates = {
+    hypertension: {
+      diagnosis: '高血压病',
+      drugs: [
+        { name: '硝苯地平控释片', spec: '30mg × 7片', dosage: '1片', freq: 'qd', days: '7', remark: '' },
+        { name: '厄贝沙坦片', spec: '150mg × 7片', dosage: '1片', freq: 'qd', days: '7', remark: '' }
+      ]
+    },
+    uri: {
+      diagnosis: '急性上呼吸道感染',
+      drugs: [
+        { name: '阿莫西林胶囊', spec: '0.5g × 12粒', dosage: '1粒', freq: 'tid', days: '5', remark: '' },
+        { name: '布洛芬混悬液', spec: '100ml', dosage: '10ml', freq: 'prn', days: '3', remark: '发热时服用' }
+      ]
+    },
+    diabetes: {
+      diagnosis: '2型糖尿病',
+      drugs: [
+        { name: '盐酸二甲双胍片', spec: '500mg × 20片', dosage: '1片', freq: 'bid', days: '14', remark: '' }
+      ]
+    }
+  };
+
+  var btnLoadTemplate = document.getElementById('btnLoadTemplate');
+  var templateDropdown = document.getElementById('templateDropdown');
+  var btnSaveTemplate = document.getElementById('btnSaveTemplate');
+  var saveTemplateModal = document.getElementById('saveTemplateModal');
+  var diagnosisText = document.getElementById('diagnosisText');
+  var drugSelector = document.getElementById('drugSelector');
+
+  // Toggle dropdown on button click
+  btnLoadTemplate.addEventListener('click', function(e) {
+    e.stopPropagation();
+    templateDropdown.classList.toggle('show');
+  });
+
+  // Close dropdown when clicking outside
+  document.addEventListener('click', function() {
+    templateDropdown.classList.remove('show');
+  });
+
+  // Load template
+  templateDropdown.querySelectorAll('.td-item').forEach(function(item) {
+    item.addEventListener('click', function(e) {
+      e.stopPropagation();
+      var key = this.getAttribute('data-template');
+      var t = templates[key];
+      if (!t) return;
+
+      // Set diagnosis
+      diagnosisText.value = t.diagnosis;
+
+      // Clear existing drug data rows (keep header)
+      var existingRows = drugSelector.querySelectorAll('.drug-data-row');
+      existingRows.forEach(function(r) { r.remove(); });
+
+      // Add template drug rows
+      t.drugs.forEach(function(d, idx) {
+        var newRow = createDrugRow(d, idx === t.drugs.length - 1);
+        drugSelector.appendChild(newRow);
+      });
+
+      updateDrugCount();
+      templateDropdown.classList.remove('show');
+    });
+  });
+
+  // Save template modal
+  btnSaveTemplate.addEventListener('click', function() {
+    document.getElementById('templateNameInput').value = '';
+    saveTemplateModal.classList.add('show');
+  });
+
+  document.getElementById('btnCancelSave').addEventListener('click', function() {
+    saveTemplateModal.classList.remove('show');
+  });
+
+  document.getElementById('btnConfirmSave').addEventListener('click', function() {
+    var name = document.getElementById('templateNameInput').value.trim();
+    if (!name) {
+      alert('请输入模板名称');
+      return;
+    }
+    alert('模板 "' + name + '" 已保存！');
+    saveTemplateModal.classList.remove('show');
+  });
+
+  // Close modal on overlay click
+  saveTemplateModal.addEventListener('click', function(e) {
+    if (e.target === saveTemplateModal) {
+      saveTemplateModal.classList.remove('show');
+    }
+  });
+
+  // =========================================================================
+  // 2. Add New Patient Drawer
+  // =========================================================================
+  var drawerOverlay = document.getElementById('drawerOverlay');
+  var drawerPanel = document.getElementById('drawerPanel');
+  var btnNewPatient = document.getElementById('btnNewPatient');
+  var btnDrawerClose = document.getElementById('btnDrawerClose');
+  var btnCancelPatient = document.getElementById('btnCancelPatient');
+  var btnConfirmPatient = document.getElementById('btnConfirmPatient');
+
+  function openDrawer() {
+    drawerOverlay.classList.add('show');
+    drawerPanel.classList.add('show');
+  }
+
+  function closeDrawer() {
+    drawerOverlay.classList.remove('show');
+    drawerPanel.classList.remove('show');
+  }
+
+  btnNewPatient.addEventListener('click', openDrawer);
+  btnDrawerClose.addEventListener('click', closeDrawer);
+  btnCancelPatient.addEventListener('click', closeDrawer);
+  drawerOverlay.addEventListener('click', function(e) {
+    if (e.target === drawerOverlay) closeDrawer();
+  });
+
+  btnConfirmPatient.addEventListener('click', function() {
+    var name = document.getElementById('patientName').value.trim();
+    var phone = document.getElementById('patientPhone').value.trim();
+    var address = document.getElementById('patientAddress').value.trim();
+    var allergy = document.getElementById('patientAllergy').value.trim();
+
+    if (!name) { alert('请输入姓名'); return; }
+    if (!phone) { alert('请输入手机号'); return; }
+    if (!address) { alert('请输入地址'); return; }
+    if (!allergy) { alert('请填写过敏史（若无请填"无"）'); return; }
+
+    var gender = document.getElementById('patientGender').value;
+    var age = document.getElementById('patientAge').value;
+    var genderLabel = gender === 'M' ? '男' : '女';
+    var ageStr = age ? (age + '岁') : '';
+
+    // Update patient quick card
+    document.getElementById('pqAvatar').textContent = name.charAt(0);
+    document.getElementById('pqName').textContent = name;
+    var metaParts = [genderLabel];
+    if (ageStr) metaParts.push(ageStr);
+    metaParts.push(phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2'));
+    document.getElementById('pqMeta').textContent = metaParts.join(' · ');
+    document.getElementById('pqAllergy').textContent = allergy === '无' ? '' : ('⚠ ' + allergy);
+
+    closeDrawer();
+
+    // Clear form
+    document.getElementById('patientName').value = '';
+    document.getElementById('patientAge').value = '';
+    document.getElementById('patientPhone').value = '';
+    document.getElementById('patientAddress').value = '';
+    document.getElementById('patientIdCard').value = '';
+    document.getElementById('patientAllergy').value = '';
+    document.getElementById('patientGender').value = 'M';
+  });
+
+  // =========================================================================
+  // 3. Dynamic Drug Row Add / Remove
+  // =========================================================================
+  var btnAddDrug = document.getElementById('btnAddDrug');
+  var MAX_DRUGS = 20;
+
+  function getDrugDataRows() {
+    return drugSelector.querySelectorAll('.drug-data-row');
+  }
+
+  function updateDrugCount() {
+    var count = getDrugDataRows().length;
+    document.getElementById('drugCount').textContent = '共 ' + count + ' 种药品';
+  }
+
+  function createDrugRow(data, isLast) {
+    var row = document.createElement('div');
+    row.className = 'drug-row drug-data-row';
+    if (isLast) row.style.borderBottom = 'none';
+
+    // Drug name select
+    var selName = document.createElement('select');
+    selName.className = 'drug-name';
+    var drugOptions = ['硝苯地平控释片', '厄贝沙坦片', '盐酸二甲双胍片', '阿托伐他汀钙片', '阿司匹林肠溶片', '阿莫西林胶囊', '布洛芬混悬液'];
+    drugOptions.forEach(function(opt) {
+      var o = document.createElement('option');
+      o.textContent = opt;
+      if (data.name === opt) o.selected = true;
+      selName.appendChild(o);
+    });
+    // If the drug name isn't in the list, add it
+    if (data.name && drugOptions.indexOf(data.name) === -1) {
+      var customOpt = document.createElement('option');
+      customOpt.textContent = data.name;
+      customOpt.selected = true;
+      selName.insertBefore(customOpt, selName.firstChild);
+    }
+
+    // Spec select
+    var selSpec = document.createElement('select');
+    selSpec.className = 'drug-spec';
+    var specOptions = data.spec ? [data.spec] : ['30mg × 7片', '150mg × 7片', '500mg × 20片'];
+    specOptions.forEach(function(opt) {
+      var o = document.createElement('option');
+      o.textContent = opt;
+      o.selected = true;
+      selSpec.appendChild(o);
+    });
+
+    // Dosage input
+    var inpDosage = document.createElement('input');
+    inpDosage.className = 'drug-dosage';
+    inpDosage.value = data.dosage || '';
+    inpDosage.placeholder = '用量';
+
+    // Freq select
+    var selFreq = document.createElement('select');
+    selFreq.className = 'drug-freq';
+    ['qd', 'bid', 'tid', 'prn'].forEach(function(opt) {
+      var o = document.createElement('option');
+      o.textContent = opt;
+      if (data.freq === opt) o.selected = true;
+      selFreq.appendChild(o);
+    });
+
+    // Days input
+    var inpDays = document.createElement('input');
+    inpDays.className = 'drug-days';
+    inpDays.value = data.days || '';
+    inpDays.placeholder = '天数';
+
+    // Remark input
+    var inpRemark = document.createElement('input');
+    inpRemark.className = 'drug-remark';
+    inpRemark.value = data.remark || '';
+    inpRemark.placeholder = '备注';
+
+    // Remove button
+    var btnRemove = document.createElement('button');
+    btnRemove.className = 'remove-btn drug-remove-btn';
+    btnRemove.textContent = '×';
+    btnRemove.addEventListener('click', function() {
+      var rows = getDrugDataRows();
+      if (rows.length <= 1) {
+        alert('至少保留一种药品');
+        return;
+      }
+      row.remove();
+      updateDrugCount();
+      // Re-apply bottom border removal
+      var remainingRows = getDrugDataRows();
+      remainingRows.forEach(function(r, i) {
+        r.style.borderBottom = (i === remainingRows.length - 1) ? 'none' : '';
+      });
+    });
+
+    row.appendChild(selName);
+    row.appendChild(selSpec);
+    row.appendChild(inpDosage);
+    row.appendChild(selFreq);
+    row.appendChild(inpDays);
+    row.appendChild(inpRemark);
+    row.appendChild(btnRemove);
+
+    return row;
+  }
+
+  btnAddDrug.addEventListener('click', function() {
+    var rows = getDrugDataRows();
+    if (rows.length >= MAX_DRUGS) {
+      alert('最多添加 20 种药品');
+      return;
+    }
+
+    // Clone the last row
+    var lastRow = rows[rows.length - 1];
+    var newRow = lastRow.cloneNode(true);
+
+    // Clear values in the new row
+    var inputs = newRow.querySelectorAll('input');
+    inputs.forEach(function(inp) { inp.value = ''; });
+
+    // Reset selects to first option
+    var selects = newRow.querySelectorAll('select');
+    selects.forEach(function(sel) { sel.selectedIndex = 0; });
+
+    // Re-attach remove handler
+    var removeBtn = newRow.querySelector('.drug-remove-btn');
+    removeBtn.addEventListener('click', function() {
+      var currentRows = getDrugDataRows();
+      if (currentRows.length <= 1) {
+        alert('至少保留一种药品');
+        return;
+      }
+      newRow.remove();
+      updateDrugCount();
+      var remainingRows = getDrugDataRows();
+      remainingRows.forEach(function(r, i) {
+        r.style.borderBottom = (i === remainingRows.length - 1) ? 'none' : '';
+      });
+    });
+
+    // Update last row border
+    lastRow.style.borderBottom = '';
+    newRow.style.borderBottom = 'none';
+
+    drugSelector.appendChild(newRow);
+    updateDrugCount();
+  });
+
+  // Initial count
+  updateDrugCount();
+
+  // =========================================================================
+  // 4. Draft Auto-Save Simulation
+  // =========================================================================
+  var draftBar = document.getElementById('draftBar');
+  var draftText = document.getElementById('draftText');
+
+  function getTimeString() {
+    var now = new Date();
+    var h = String(now.getHours()).padStart(2, '0');
+    var m = String(now.getMinutes()).padStart(2, '0');
+    var s = String(now.getSeconds()).padStart(2, '0');
+    return h + ':' + m + ':' + s;
+  }
+
+  function updateDraftTime() {
+    draftText.textContent = '草稿已自动保存 · 最后保存时间 ' + getTimeString();
+    // Flash animation
+    draftBar.classList.remove('flash');
+    void draftBar.offsetWidth; // trigger reflow
+    draftBar.classList.add('flash');
+  }
+
+  setInterval(updateDraftTime, 30000);
+
+  // =========================================================================
+  // 5. Sidebar Render (Assistant only)
+  // =========================================================================
+  var roleMenusForm = {
+    assistant: {
+      user: { name: '李助理', role: '医生助理', avatar: '李' },
+      menu: [
+        { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: false }] },
+        { section: '业务管理', items: [
+          { icon: '◈', label: '处方管理', href: 'prescription-list-mockup.html', active: false },
+          { icon: '◈', label: '新建处方', href: 'prescription-form-mockup.html', active: true },
+          { icon: '◈', label: '患者管理', href: 'patient-list-mockup.html', active: false }
+        ]},
+        { section: '其他', items: [
+          { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+        ]}
+      ]
+    }
+  };
+
+  (function initFormSidebar() {
+    var cfg = roleMenusForm.assistant;
+    document.getElementById('sidebarNav').innerHTML = cfg.menu.map(function(section) {
+      return '<div class="sidebar-section-title">' + section.section + '</div>' + section.items.map(function(item) {
+        return '<a class="nav-item' + (item.active ? ' active' : '') + '" href="' + item.href + '">' + item.icon + ' ' + item.label + '</a>';
+      }).join('');
+    }).join('');
+  })();
+
+})();
+</script>
+
+</body>
+</html>

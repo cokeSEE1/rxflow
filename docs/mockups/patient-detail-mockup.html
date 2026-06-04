@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RxFlow — 我的处方</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-900: #134e4a; --teal-700: #0f766e; --teal-500: #14b8a6; --teal-100: #ccfbf1; --teal-50: #f0fdfa;
+    --coral: #f43f5e; --coral-50: #fff1f2; --amber: #f59e0b; --amber-50: #fffbeb; --amber-100: #fef3c7;
+    --warm-50: #fafaf9; --warm-100: #f5f5f4; --warm-200: #e7e5e4; --warm-300: #d6d3d1; --warm-700: #44403c; --warm-900: #1c1917;
+    --green-50: #f0fdf4; --green-600: #16a34a; --blue-50: #eff6ff; --blue-600: #2563eb;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-hover: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--warm-50); color: var(--warm-900);
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  .sidebar {
+    width: 220px; background: linear-gradient(180deg, #0d5c56 0%, var(--teal-900) 100%);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 32px; font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 24px; color: #fff; letter-spacing: -0.3px;
+  }
+  .sidebar-brand span { color: var(--teal-500); }
+  .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; margin: 2px 8px;
+    border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500; cursor: pointer;
+    text-decoration: none;
+  }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nav-item.active { color: #fff; background: rgba(255,255,255,0.12); font-weight: 600; }
+  .nav-item { transition: all 0.25s ease; }
+  .sidebar-role-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8);
+    margin: 10px 20px 0;
+  }
+  .sidebar-user {
+    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px; margin-top: auto;
+  }
+  .sidebar-user .avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--teal-700); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+  }
+  .sidebar-user .name { font-size: 13px; color: #fff; font-weight: 500; }
+  .sidebar-user .role { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .header {
+    height: 56px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-bottom: 1px solid var(--warm-200); flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; }
+  .btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all 0.15s;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--teal-700); color: #fff; }
+  .btn-primary:hover { background: var(--teal-900); }
+  .btn-outline { background: #fff; color: var(--warm-700); border: 1.5px solid var(--warm-200); }
+  .btn-outline:hover { border-color: var(--warm-300); }
+  .btn-sm { padding: 5px 12px; font-size: 11px; border-radius: 6px; }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+
+  .card {
+    background: #fff; border-radius: 12px; padding: 24px;
+    box-shadow: var(--shadow-card);
+    margin-bottom: 20px;
+  }
+  .card h3 {
+    font-family: 'DM Serif Display', Georgia, serif; font-size: 16px;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--warm-100);
+  }
+  .status-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-family: 'DM Sans', sans-serif; font-weight: 600; margin-left: 8px; vertical-align: middle;
+  }
+  .status-badge.pending { background: var(--amber-50); color: #92400e; }
+  .status-badge.approved { background: var(--teal-100); color: var(--teal-700); }
+  .status-badge.delivering { background: #dbeafe; color: #1d4ed8; }
+  .status-badge.received { background: #f0fdf4; color: #166534; }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+  .info-item .key { font-size: 11px; color: var(--warm-700); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .info-item .val { font-size: 14px; font-weight: 500; }
+  .allergy-warn { color: var(--coral); font-weight: 600; }
+
+  .drug-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .drug-table th {
+    text-align: left; padding: 8px 12px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--warm-700); background: var(--warm-50);
+    border-bottom: 2px solid var(--warm-200);
+  }
+  .drug-table td { padding: 10px 12px; border-bottom: 1px solid var(--warm-100); }
+  .drug-table tr:last-child td { border-bottom: none; }
+  .drug-table .drug-name { font-weight: 600; }
+  .drug-table .spec { color: var(--warm-700); font-size: 12px; }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before {
+    content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px;
+    width: 2px; background: var(--warm-200);
+  }
+  .tl-item { position: relative; padding-bottom: 20px; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-dot {
+    position: absolute; left: -21px; top: 3px;
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--warm-300); background: #fff;
+  }
+  .tl-dot.active { border-color: var(--teal-500); background: var(--teal-500); }
+  .tl-dot.current { border-color: var(--blue-600); background: var(--blue-600); }
+  .tl-dot.received { border-color: var(--green-600); background: var(--green-600); }
+  .tl-title { font-size: 14px; font-weight: 600; }
+  .tl-desc { font-size: 12px; color: var(--warm-700); margin-top: 2px; }
+  .tl-time { font-size: 11px; color: var(--warm-300); margin-top: 2px; }
+
+  /* Patient card (right sidebar) */
+  .patient-card .patient-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .patient-avatar {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 600; flex-shrink: 0;
+  }
+  .patient-name { font-size: 16px; font-weight: 600; }
+  .patient-id { font-size: 11px; color: var(--warm-700); }
+
+  /* Delivery info */
+  .delivery-card-inner {
+    display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px;
+    background: var(--blue-50); border-radius: 10px; margin-bottom: 10px;
+  }
+  .delivery-card-inner .dl-icon {
+    width: 40px; height: 40px; border-radius: 10px; background: #dbeafe;
+    display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+  .dl-meta { font-size: 12px; color: var(--warm-700); margin-top: 4px; }
+  .dl-row {
+    display: flex; gap: 24px; margin-bottom: 10px;
+  }
+  .dl-row .dl-field { flex: 1; }
+  .dl-row .dl-field .dl-key { font-size: 11px; color: var(--warm-700); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .dl-row .dl-field .dl-val { font-size: 13px; font-weight: 500; }
+
+  /* Proof thumbnail */
+  .proof-thumb {
+    width: 100px; height: 100px; border-radius: 10px; background: var(--warm-100);
+    display: flex; align-items: center; justify-content: center; font-size: 28px;
+    border: 1px solid var(--warm-200); cursor: pointer; position: relative; overflow: hidden;
+    transition: all 0.15s;
+  }
+  .proof-thumb:hover { border-color: var(--teal-500); box-shadow: var(--shadow-hover); }
+  .proof-meta { font-size: 12px; color: var(--warm-700); margin-top: 6px; }
+
+  /* Sign confirmation section */
+  .sms-input {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .sms-input input {
+    flex: 1; padding: 10px 14px; border: 1.5px solid var(--warm-200);
+    border-radius: 8px; font-size: 15px; font-family: 'DM Sans', sans-serif;
+    letter-spacing: 4px; text-align: center; outline: none;
+  }
+  .sms-input input:focus { border-color: var(--teal-500); }
+  .checklist { margin-bottom: 16px; }
+  .checklist-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--warm-100); font-size: 13px;
+  }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-item .check { color: var(--green-600); font-weight: 600; }
+  .checklist-item .qty { color: var(--warm-700); font-size: 12px; margin-left: auto; }
+  .sign-section {
+    border: 2px dashed var(--teal-500); border-radius: 12px; padding: 20px;
+    background: linear-gradient(135deg, var(--teal-50), #fff);
+  }
+  .sign-section h4 { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+  .section-label {
+    font-size: 11px; font-weight: 600; color: var(--warm-700); text-transform: uppercase;
+    letter-spacing: 0.5px; margin-bottom: 8px;
+  }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .card { animation: fadeIn 0.4s ease-out both; }
+  .card:nth-child(1) { animation-delay: 0s; }
+  .card:nth-child(2) { animation-delay: 0.05s; }
+  .card:nth-child(3) { animation-delay: 0.1s; }
+  .card:nth-child(4) { animation-delay: 0.15s; }
+  .card:nth-child(5) { animation-delay: 0.2s; }
+  .card:nth-child(6) { animation-delay: 0.25s; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" data-role="patient">
+  <div class="sidebar-brand">Rx<span>Flow</span></div>
+  <div class="sidebar-role-tag">🏥 患者视角</div>
+  <nav id="sidebarNav"></nav>
+  <div class="sidebar-user">
+    <div class="avatar" id="sidebarAvatar">赵</div>
+    <div>
+      <div class="name" id="sidebarName">赵建国</div>
+      <div class="role" id="sidebarRole">患者</div>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">处方详情</h1>
+      <span class="status-badge delivering">配送中</span>
+    </div>
+    <button class="btn btn-outline">← 返回</button>
+  </header>
+
+  <div class="content">
+    <!-- MAIN COLUMN -->
+    <div class="main-col">
+
+      <!-- Rx Info Card -->
+      <div class="card">
+        <h3>处方信息 <span class="status-badge delivering">配送中</span></h3>
+        <div class="info-grid">
+          <div class="info-item">
+            <div class="key">处方编号</div>
+            <div class="val">PRS-20260602-0012</div>
+          </div>
+          <div class="info-item">
+            <div class="key">开具医生</div>
+            <div class="val">张医生 · 主治医师</div>
+          </div>
+          <div class="info-item">
+            <div class="key">创建时间</div>
+            <div class="val">2026-06-02 16:20</div>
+          </div>
+          <div class="info-item">
+            <div class="key">当前状态</div>
+            <div class="val" style="color:#1d4ed8;">● 配送中 · 预计今天 12:00 送达</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Diagnosis & Drugs Card -->
+      <div class="card">
+        <h3>诊断与处方</h3>
+        <div style="margin-bottom:16px;">
+          <div class="key" style="font-size:11px;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">诊断描述</div>
+          <div style="font-size:15px;font-weight:500;">冠状动脉粥样硬化性心脏病，稳定型心绞痛，规律服药，血压控制可</div>
+        </div>
+        <table class="drug-table">
+          <thead>
+            <tr><th>药品名称</th><th>规格</th><th>用量</th><th>频次</th><th>天数</th><th>备注</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="drug-name">阿司匹林肠溶片</td>
+              <td class="spec">100mg × 30片</td>
+              <td>1片</td>
+              <td>qd</td>
+              <td>30天</td>
+              <td class="spec">餐后服用</td>
+            </tr>
+            <tr>
+              <td class="drug-name">阿托伐他汀钙片</td>
+              <td class="spec">20mg × 14片</td>
+              <td>1片</td>
+              <td>qn</td>
+              <td>14天</td>
+              <td class="spec">睡前服用</td>
+            </tr>
+            <tr>
+              <td class="drug-name">美托洛尔缓释片</td>
+              <td class="spec">47.5mg × 14片</td>
+              <td>1片</td>
+              <td>qd</td>
+              <td>14天</td>
+              <td class="spec">晨起空腹</td>
+            </tr>
+            <tr>
+              <td class="drug-name">单硝酸异山梨酯片</td>
+              <td class="spec">20mg × 28片</td>
+              <td>1片</td>
+              <td>bid</td>
+              <td>14天</td>
+              <td class="spec">—</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:16px;">
+          <div class="key" style="font-size:11px;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">医嘱备注</div>
+          <div style="font-size:13px;color:var(--warm-700);">低盐低脂饮食，避免剧烈运动。如出现胸痛加重请立即就医。定期复诊，下次复诊时间 2026-07-02。</div>
+        </div>
+      </div>
+
+      <!-- Delivery Info Card -->
+      <div class="card" id="deliverySection">
+        <h3>配送信息 <span class="status-badge delivering">配送中</span></h3>
+        <div class="delivery-card-inner">
+          <div class="dl-icon">📦</div>
+          <div>
+            <div style="font-weight:600;font-size:14px;">快递员：王师傅</div>
+            <div class="dl-meta">电话：139****5678 · 快递单号：SF1234567890</div>
+            <div class="dl-meta">取件时间：2026-06-03 10:30 · 预计送达：2026-06-03 12:00</div>
+          </div>
+        </div>
+        <div class="dl-row">
+          <div class="dl-field">
+            <div class="dl-key">收件地址</div>
+            <div class="dl-val">北京市朝阳区望京西园三区 401号楼 5单元 302</div>
+          </div>
+          <div class="dl-field">
+            <div class="dl-key">预计送达</div>
+            <div class="dl-val" style="color:#1d4ed8;font-size:16px;">今天 12:00</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sign Confirmation Section -->
+      <div class="card" id="signSection">
+        <h3>确认签收 <span class="status-badge delivering">待签收</span></h3>
+        <div class="sign-section">
+          <h4>📋 药品核对清单</h4>
+          <div style="font-size:12px;color:var(--warm-700);margin-bottom:12px;">请仔细核对以下药品与处方是否一致，确认无误后方可签收</div>
+          <div class="checklist">
+            <div class="checklist-item">
+              <input type="checkbox" id="check-aspirin" class="drug-checkbox">
+              <label for="check-aspirin">阿司匹林肠溶片 <span class="qty">100mg × 30片</span></label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" id="check-atorvastatin" class="drug-checkbox">
+              <label for="check-atorvastatin">阿托伐他汀钙片 <span class="qty">20mg × 14片</span></label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" id="check-metoprolol" class="drug-checkbox">
+              <label for="check-metoprolol">美托洛尔缓释片 <span class="qty">47.5mg × 14片</span></label>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" id="check-isosorbide" class="drug-checkbox">
+              <label for="check-isosorbide">单硝酸异山梨酯片 <span class="qty">20mg × 28片</span></label>
+            </div>
+          </div>
+
+          <div class="section-label" style="margin-top:16px;">短信验证码</div>
+          <div style="font-size:12px;color:var(--warm-700);margin-bottom:10px;">验证码将发送至您绑定的手机号 138****4444</div>
+          <label for="smsCode" style="font-size:11px;font-weight:600;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:6px;">验证码</label>
+          <div class="sms-input">
+            <input type="text" id="smsCode" placeholder="输入6位验证码" maxlength="6">
+            <button class="btn btn-outline btn-sm" style="flex-shrink:0;white-space:nowrap;">发送验证码</button>
+          </div>
+
+          <div style="display:flex;gap:8px;margin-top:16px;">
+            <button class="btn btn-primary" style="flex:1;">确认签收</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Proof of Receipt (shown when signed) -->
+      <div class="card" id="proofSection" style="display:none;">
+        <h3>签收凭证 <span class="status-badge received">已签收</span></h3>
+        <div style="display:flex;gap:16px;align-items:flex-start;">
+          <div class="proof-thumb" title="点击查看大图">📷</div>
+          <div>
+            <div style="font-size:13px;font-weight:500;margin-bottom:6px;">签收信息</div>
+            <div class="proof-meta">签收时间：2026-06-03 16:45</div>
+            <div class="proof-meta">签收方式：短信验证码确认</div>
+            <div class="proof-meta">签收人：本人签收</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Timeline -->
+      <div class="card">
+        <h3>状态时间线</h3>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot current"></div>
+            <div class="tl-title">配送中</div>
+            <div class="tl-desc">王师傅已取件，正在配送途中</div>
+            <div class="tl-time">2026-06-03 10:30</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot active"></div>
+            <div class="tl-title">审核通过</div>
+            <div class="tl-desc">张医生审核通过了该处方，等待快递员取件配送</div>
+            <div class="tl-time">2026-06-03 09:45</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot active"></div>
+            <div class="tl-title">处方创建</div>
+            <div class="tl-desc">李助理为你就诊创建了该处方</div>
+            <div class="tl-time">2026-06-02 16:20</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN: Patient Info -->
+    <div class="side-panel">
+      <div class="card patient-card">
+        <h3>患者信息</h3>
+        <div class="patient-header">
+          <div class="patient-avatar">赵</div>
+          <div>
+            <div class="patient-name">赵建国</div>
+            <div class="patient-id">男 · 62岁</div>
+          </div>
+        </div>
+        <div class="info-grid" style="grid-template-columns:1fr;">
+          <div class="info-item"><div class="key">手机号</div><div class="val">138****4444</div></div>
+          <div class="info-item"><div class="key">地址</div><div class="val">北京市朝阳区望京西园三区 401号楼 5单元 302</div></div>
+          <div class="info-item"><div class="key">过敏史</div><div class="val allergy-warn">⚠ 青霉素过敏</div></div>
+          <div class="info-item"><div class="key">既往处方</div><div class="val">8 张 · <a href="#" style="color:var(--teal-700);text-decoration:none;">查看全部</a></div></div>
+        </div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg, var(--teal-50), #fff);">
+        <h3>配送联系方式</h3>
+        <div style="font-size:13px;color:var(--warm-700);line-height:1.6;">
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--warm-100);">
+            <span>快递员</span><span style="font-weight:600;">王师傅</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--warm-100);">
+            <span>联系电话</span>
+            <a href="tel:13900005678" style="color:var(--teal-700);font-weight:600;text-decoration:none;">📞 139****5678</a>
+          </div>
+          <div style="display:flex;justify-content:space-between;padding:8px 0;">
+            <span>快递单号</span><span style="font-weight:500;">SF1234567890</span>
+          </div>
+        </div>
+        <a class="btn btn-outline" style="width:100%;margin-top:12px;justify-content:center;display:flex;" href="patient-tracking-mockup.html">追踪配送 →</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Sidebar init
+(function() {
+  var cfg = {
+    user: { name: '赵建国', role: '患者', avatar: '赵' },
+    menu: [
+      { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: false }] },
+      { section: '其他', items: [
+        { icon: '◈', label: '我的处方', href: 'patient-detail-mockup.html', active: true },
+        { icon: '◈', label: '配送追踪', href: 'patient-tracking-mockup.html', active: false },
+        { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+      ]}
+    ]
+  };
+  document.getElementById('sidebarNav').innerHTML = cfg.menu.map(function(section) {
+    return '<div class="sidebar-section-title">' + section.section + '</div>' + section.items.map(function(item) {
+      return '<a class="nav-item' + (item.active ? ' active' : '') + '" href="' + item.href + '">' + item.icon + ' ' + item.label + '</a>';
+    }).join('');
+  }).join('');
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RxFlow — 患者管理</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-900: #134e4a; --teal-700: #0f766e; --teal-500: #14b8a6; --teal-100: #ccfbf1; --teal-50: #f0fdfa;
+    --coral: #f43f5e; --coral-50: #fff1f2; --amber: #f59e0b; --amber-50: #fffbeb;
+    --warm-50: #fafaf9; --warm-100: #f5f5f4; --warm-200: #e7e5e4; --warm-300: #d6d3d1; --warm-700: #44403c; --warm-900: #1c1917;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--warm-50); color: var(--warm-900);
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  .sidebar {
+    width: 220px; background: linear-gradient(180deg, #0d5c56 0%, var(--teal-900) 100%);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 32px; font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 24px; color: #fff; letter-spacing: -0.3px;
+  }
+  .sidebar-brand span { color: var(--teal-500); }
+  .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; margin: 2px 8px;
+    border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nav-item.active { color: #fff; background: rgba(255,255,255,0.12); font-weight: 600; }
+  .nav-item { transition: all 0.25s ease; }
+  .sidebar-role-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8);
+    margin: 10px 20px 0;
+  }
+  .sidebar-user {
+    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px; margin-top: auto;
+  }
+  .sidebar-user .avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--teal-700); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+  }
+  .sidebar-user .name { font-size: 13px; color: #fff; font-weight: 500; }
+  .sidebar-user .role { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .header {
+    height: 56px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-bottom: 1px solid var(--warm-200); flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; }
+  .btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--teal-700); color: #fff; }
+  .btn-primary:hover { background: var(--teal-900); }
+  .btn-outline { background: #fff; color: var(--warm-700); border: 1.5px solid var(--warm-200); }
+  .btn-outline:hover { border-color: var(--warm-300); }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  .filter-bar {
+    background: #fff; border-radius: 12px; padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
+  }
+  .filter-bar input {
+    padding: 8px 14px; border: 1.5px solid var(--warm-200); border-radius: 8px;
+    font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; background: #fff;
+    width: 260px; transition: border-color 0.15s;
+  }
+  .filter-bar input:focus { border-color: var(--teal-500); }
+  .filter-bar input::placeholder { color: var(--warm-300); }
+  .filter-spacer { flex: 1; }
+
+  .card {
+    background: #fff; border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 12px 16px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--warm-700); background: var(--warm-50);
+    border-bottom: 2px solid var(--warm-200); font-weight: 600;
+  }
+  tbody td { padding: 14px 16px; border-bottom: 1px solid var(--warm-100); vertical-align: middle; }
+  tbody tr:hover { background: var(--teal-50); }
+  tbody tr:last-child td { border-bottom: none; }
+
+  .patient-name-cell { font-weight: 600; display: flex; align-items: center; gap: 8px; }
+  .patient-avatar-sm {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 600; flex-shrink: 0;
+  }
+  .allergy-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px;
+    font-size: 11px; font-weight: 600; background: var(--coral-50); color: #be123c;
+  }
+  .allergy-tag.none { background: var(--warm-100); color: var(--warm-700); }
+
+  .actions { display: flex; gap: 6px; }
+  .action-link {
+    font-size: 12px; color: var(--teal-700); cursor: pointer; font-weight: 500; text-decoration: none;
+    padding: 4px 8px; border-radius: 4px; transition: background 0.15s;
+  }
+  .action-link:hover { background: var(--teal-100); }
+  .action-link.danger { color: var(--coral); }
+  .action-link.danger:hover { background: var(--coral-50); }
+
+  .pagination {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-top: 1px solid var(--warm-100);
+  }
+  .pagination-info { font-size: 12px; color: var(--warm-700); }
+  .pagination-btns { display: flex; gap: 4px; }
+  .page-btn {
+    width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--warm-200);
+    background: #fff; font-size: 12px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .page-btn:hover { border-color: var(--teal-500); color: var(--teal-700); }
+  .page-btn.active { background: var(--teal-700); color: #fff; border-color: var(--teal-700); }
+
+  .rx-count { font-size: 12px; color: var(--teal-700); font-weight: 500; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .filter-bar { animation: fadeIn 0.4s ease-out both; }
+  .card { animation: fadeIn 0.4s ease-out both; animation-delay: 0.05s; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" data-role="assistant">
+  <div class="sidebar-brand">Rx<span>Flow</span></div>
+  <div class="sidebar-role-tag">👨‍💼 医生助理视角</div>
+  <nav id="sidebarNav"></nav>
+  <div class="sidebar-user">
+    <div class="avatar" id="sidebarAvatar">李</div>
+    <div><div class="name" id="sidebarName">李助理</div><div class="role" id="sidebarRole">医生助理</div></div>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">患者管理</h1>
+      <span style="font-size:12px;color:var(--warm-700);">共 128 人</span>
+    </div>
+    <button class="btn btn-primary">+ 新增患者</button>
+  </header>
+
+  <div class="content">
+    <div class="filter-bar">
+      <label for="patientSearch" class="sr-only" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);border:0;">搜索患者</label><input type="text" id="patientSearch" placeholder="🔍 搜索姓名 / 手机号 / 地址...">
+      <span class="filter-spacer"></span>
+      <button class="btn btn-outline">导出</button>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th>患者</th>
+            <th>性别</th>
+            <th>年龄</th>
+            <th>手机号</th>
+            <th>地址</th>
+            <th>过敏史</th>
+            <th>处方数</th>
+            <th>创建时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="patient-name-cell">
+                <div class="patient-avatar-sm">赵</div>
+                赵建国
+              </div>
+            </td>
+            <td>男</td>
+            <td>62岁</td>
+            <td>138****4444</td>
+            <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">北京市朝阳区望京西园三区</td>
+            <td><span class="allergy-tag">青霉素</span></td>
+            <td><span class="rx-count">3 张</span></td>
+            <td style="font-size:12px;color:var(--warm-700);">2025-03-15</td>
+            <td class="actions">
+              <a class="action-link" href="javascript:void(0)">查看</a>
+              <a class="action-link" href="javascript:void(0)">编辑</a>
+              <a class="action-link danger" href="javascript:void(0)">删除</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="patient-name-cell">
+                <div class="patient-avatar-sm" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">王</div>
+                王小明
+              </div>
+            </td>
+            <td>男</td>
+            <td>8岁</td>
+            <td>139****5555</td>
+            <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">北京市海淀区中关村南大街</td>
+            <td><span class="allergy-tag none">无</span></td>
+            <td><span class="rx-count">1 张</span></td>
+            <td style="font-size:12px;color:var(--warm-700);">2025-11-02</td>
+            <td class="actions">
+              <a class="action-link" href="javascript:void(0)">查看</a>
+              <a class="action-link" href="javascript:void(0)">编辑</a>
+              <a class="action-link danger" href="javascript:void(0)">删除</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="patient-name-cell">
+                <div class="patient-avatar-sm" style="background:linear-gradient(135deg,#f59e0b,#d97706);">李</div>
+                李奶奶
+              </div>
+            </td>
+            <td>女</td>
+            <td>71岁</td>
+            <td>137****6666</td>
+            <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">北京市东城区东直门内大街</td>
+            <td><span class="allergy-tag">磺胺类</span></td>
+            <td><span class="rx-count">5 张</span></td>
+            <td style="font-size:12px;color:var(--warm-700);">2023-08-20</td>
+            <td class="actions">
+              <a class="action-link" href="javascript:void(0)">查看</a>
+              <a class="action-link" href="javascript:void(0)">编辑</a>
+              <a class="action-link danger" href="javascript:void(0)">删除</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="patient-name-cell">
+                <div class="patient-avatar-sm" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">陈</div>
+                陈建国
+              </div>
+            </td>
+            <td>男</td>
+            <td>55岁</td>
+            <td>136****7777</td>
+            <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">北京市丰台区方庄芳古园</td>
+            <td><span class="allergy-tag none">无</span></td>
+            <td><span class="rx-count">2 张</span></td>
+            <td style="font-size:12px;color:var(--warm-700);">2024-05-10</td>
+            <td class="actions">
+              <a class="action-link" href="javascript:void(0)">查看</a>
+              <a class="action-link" href="javascript:void(0)">编辑</a>
+              <a class="action-link danger" href="javascript:void(0)">删除</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="patient-name-cell">
+                <div class="patient-avatar-sm" style="background:linear-gradient(135deg,#ec4899,#db2777);">刘</div>
+                刘美丽
+              </div>
+            </td>
+            <td>女</td>
+            <td>45岁</td>
+            <td>135****8888</td>
+            <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">北京市朝阳区双井富力城</td>
+            <td><span class="allergy-tag none">无</span></td>
+            <td><span class="rx-count">1 张</span></td>
+            <td style="font-size:12px;color:var(--warm-700);">2026-01-18</td>
+            <td class="actions">
+              <a class="action-link" href="javascript:void(0)">查看</a>
+              <a class="action-link" href="javascript:void(0)">编辑</a>
+              <a class="action-link danger" href="javascript:void(0)">删除</a>
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <div class="patient-name-cell">
+                <div class="patient-avatar-sm" style="background:linear-gradient(135deg,#84cc16,#65a30d);">孙</div>
+                孙大爷
+              </div>
+            </td>
+            <td>男</td>
+            <td>68岁</td>
+            <td>134****9999</td>
+            <td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">北京市西城区新街口外大街</td>
+            <td><span class="allergy-tag">头孢类</span></td>
+            <td><span class="rx-count">4 张</span></td>
+            <td style="font-size:12px;color:var(--warm-700);">2023-12-01</td>
+            <td class="actions">
+              <a class="action-link" href="javascript:void(0)">查看</a>
+              <a class="action-link" href="javascript:void(0)">编辑</a>
+              <a class="action-link danger" href="javascript:void(0)">删除</a>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pagination">
+        <div class="pagination-info">第 1-6 条，共 128 条</div>
+        <div class="pagination-btns">
+          <button class="page-btn">‹</button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn">3</button>
+          <button class="page-btn">...</button>
+          <button class="page-btn">22</button>
+          <button class="page-btn">›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var roleMenus = {
+    assistant: {
+      user: { name: '李助理', role: '医生助理', avatar: '李' },
+      menu: [
+        { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: false }] },
+        { section: '业务管理', items: [
+          { icon: '◈', label: '处方管理', href: 'prescription-list-mockup.html', active: false },
+          { icon: '◈', label: '新建处方', href: 'prescription-form-mockup.html', active: false },
+          { icon: '◈', label: '患者管理', href: 'patient-list-mockup.html', active: true }
+        ]},
+        { section: '其他', items: [
+          { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+        ]}
+      ]
+    }
+  };
+
+  var cfg = roleMenus.assistant;
+  document.getElementById('sidebarNav').innerHTML = cfg.menu.map(function(section) {
+    return '<div class="sidebar-section-title">' + section.section + '</div>' + section.items.map(function(item) {
+      return '<a class="nav-item' + (item.active ? ' active' : '') + '" href="' + item.href + '">' + item.icon + ' ' + item.label + '</a>';
+    }).join('');
+  }).join('');
+})();
+</script>
+
+</body>
+</html>

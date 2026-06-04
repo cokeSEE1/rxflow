@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RxFlow — 配送追踪</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-900: #134e4a; --teal-700: #0f766e; --teal-500: #14b8a6; --teal-100: #ccfbf1; --teal-50: #f0fdfa;
+    --coral: #f43f5e; --coral-50: #fff1f2; --amber: #f59e0b; --amber-50: #fffbeb; --amber-100: #fef3c7;
+    --warm-50: #fafaf9; --warm-100: #f5f5f4; --warm-200: #e7e5e4; --warm-300: #d6d3d1; --warm-700: #44403c; --warm-900: #1c1917;
+    --green-50: #f0fdf4; --green-600: #16a34a; --blue-50: #eff6ff; --blue-600: #2563eb;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-hover: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--warm-50); color: var(--warm-900);
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  .sidebar {
+    width: 220px; background: linear-gradient(180deg, #0d5c56 0%, var(--teal-900) 100%);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 32px; font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 24px; color: #fff; letter-spacing: -0.3px;
+  }
+  .sidebar-brand span { color: var(--teal-500); }
+  .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; margin: 2px 8px;
+    border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500; cursor: pointer;
+    text-decoration: none;
+  }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nav-item.active { color: #fff; background: rgba(255,255,255,0.12); font-weight: 600; }
+  .nav-item { transition: all 0.25s ease; }
+  .sidebar-role-tag {
+    display: inline-block; padding: 2px 10px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8);
+    margin: 10px 20px 0;
+  }
+  .sidebar-user {
+    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px; margin-top: auto;
+  }
+  .sidebar-user .avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--teal-700); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+  }
+  .sidebar-user .name { font-size: 13px; color: #fff; font-weight: 500; }
+  .sidebar-user .role { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .header {
+    height: 56px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-bottom: 1px solid var(--warm-200); flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; }
+  .header-rxno { font-size: 13px; color: var(--warm-700); font-weight: 500; }
+  .btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all 0.15s;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--teal-700); color: #fff; }
+  .btn-primary:hover { background: var(--teal-900); }
+  .btn-outline { background: #fff; color: var(--warm-700); border: 1.5px solid var(--warm-200); }
+  .btn-outline:hover { border-color: var(--warm-300); }
+  .btn-tel {
+    background: var(--blue-50); color: #1d4ed8; border: 1.5px solid #dbeafe;
+    padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+    text-decoration: none; display: inline-flex; align-items: center; gap: 6px; transition: all 0.15s;
+  }
+  .btn-tel:hover { background: #dbeafe; }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; display: grid; grid-template-columns: 1fr 380px; gap: 20px; }
+
+  .card {
+    background: #fff; border-radius: 12px; padding: 24px;
+    box-shadow: var(--shadow-card);
+    margin-bottom: 20px;
+  }
+  .card h3 {
+    font-family: 'DM Serif Display', Georgia, serif; font-size: 16px;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--warm-100);
+  }
+  .status-badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-family: 'DM Sans', sans-serif; font-weight: 600; margin-left: 8px; vertical-align: middle;
+  }
+  .status-badge.delivering { background: #dbeafe; color: #1d4ed8; }
+
+  /* Delivery Progress Bar */
+  .progress-bar-container {
+    background: #fff; border-radius: 12px; padding: 28px 32px;
+    box-shadow: var(--shadow-card); margin-bottom: 20px;
+  }
+  .progress-bar-container h3 {
+    font-family: 'DM Serif Display', Georgia, serif; font-size: 16px;
+    margin-bottom: 24px; padding-bottom: 12px; border-bottom: 1px solid var(--warm-100);
+  }
+  .delivery-progress {
+    display: flex; align-items: flex-start; position: relative;
+  }
+  .dp-step {
+    flex: 1; text-align: center; position: relative; z-index: 1;
+  }
+  .dp-step .dp-icon {
+    width: 36px; height: 36px; border-radius: 50%; margin: 0 auto 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 700; border: 2px solid var(--warm-200);
+    background: #fff; color: var(--warm-300); transition: all 0.3s;
+  }
+  .dp-step.done .dp-icon {
+    border-color: var(--green-600); background: var(--green-600); color: #fff;
+  }
+  .dp-step.active .dp-icon {
+    border-color: var(--teal-500); background: var(--teal-500); color: #fff;
+    animation: pulse 2s infinite;
+  }
+  .dp-step .dp-label {
+    font-size: 13px; font-weight: 600; color: var(--warm-300); margin-bottom: 4px;
+  }
+  .dp-step.done .dp-label { color: var(--warm-900); }
+  .dp-step.active .dp-label { color: var(--teal-700); }
+  .dp-step .dp-time {
+    font-size: 11px; color: var(--warm-300);
+  }
+  .dp-step.done .dp-time { color: var(--warm-700); }
+  .dp-step.active .dp-time { color: var(--teal-700); }
+
+  .dp-connector {
+    position: absolute; top: 17px; left: 50%; width: 100%; height: 2px;
+    background: var(--warm-200); z-index: 0;
+  }
+  .dp-connector.done { background: var(--green-600); }
+  .dp-connector.active { background: linear-gradient(90deg, var(--green-600), var(--teal-500)); }
+
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(20,184,166,0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(20,184,166,0); }
+  }
+
+  /* Courier info */
+  .courier-header {
+    display: flex; align-items: center; gap: 14px; margin-bottom: 16px;
+  }
+  .courier-avatar {
+    width: 56px; height: 56px; border-radius: 14px;
+    background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 22px; font-weight: 600; flex-shrink: 0;
+  }
+  .courier-name { font-size: 16px; font-weight: 600; }
+  .courier-id { font-size: 12px; color: var(--warm-700); margin-top: 2px; }
+
+  .info-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0; border-bottom: 1px solid var(--warm-100); font-size: 13px;
+  }
+  .info-row:last-child { border-bottom: none; }
+  .info-row .row-key { color: var(--warm-700); }
+  .info-row .row-val { font-weight: 500; text-align: right; }
+  .info-row .row-val.masked { color: var(--warm-700); }
+
+  /* Map placeholder */
+  .map-placeholder {
+    width: 100%; height: 200px; border-radius: 12px;
+    background: linear-gradient(135deg, #dbeafe 0%, #eff6ff 30%, #f0fdf4 70%, #d1fae5 100%);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative; overflow: hidden; border: 1px solid var(--warm-200);
+  }
+  .map-placeholder::before {
+    content: '';
+    position: absolute; inset: 0;
+    background:
+      linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px),
+      linear-gradient(0deg, rgba(0,0,0,0.03) 1px, transparent 1px);
+    background-size: 30px 30px;
+  }
+  .map-pin {
+    width: 40px; height: 40px; border-radius: 50% 50% 50% 0;
+    background: var(--teal-700); position: relative; z-index: 2;
+    transform: rotate(-45deg); display: flex; align-items: center; justify-content: center;
+    margin-bottom: 12px; box-shadow: 0 4px 12px rgba(15,118,110,0.3);
+  }
+  .map-pin::after {
+    content: ''; width: 14px; height: 14px; border-radius: 50%;
+    background: #fff; transform: rotate(45deg);
+  }
+  .map-address {
+    font-size: 13px; font-weight: 600; color: var(--warm-900); z-index: 2;
+    text-align: center; background: rgba(255,255,255,0.85); padding: 6px 14px;
+    border-radius: 8px; border: 1px solid var(--warm-200);
+  }
+  .map-loading {
+    font-size: 11px; color: var(--warm-300); margin-top: 8px; z-index: 2;
+  }
+
+  /* Package info */
+  .package-photo {
+    width: 80px; height: 80px; border-radius: 10px;
+    background: var(--warm-100); border: 1px solid var(--warm-200);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; flex-shrink: 0;
+  }
+  .drug-summary-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 0; font-size: 13px;
+  }
+  .drug-summary-item .drug-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--teal-500); flex-shrink: 0;
+  }
+  .drug-summary-item .drug-spec { color: var(--warm-700); font-size: 12px; margin-left: auto; }
+
+  /* Estimated delivery */
+  .eta-display {
+    text-align: center; padding: 20px;
+  }
+  .eta-time {
+    font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 36px; color: var(--teal-700); line-height: 1;
+  }
+  .eta-label {
+    font-size: 12px; color: var(--warm-700); margin-top: 6px; letter-spacing: 0.3px;
+  }
+  .eta-countdown {
+    font-size: 13px; color: var(--warm-700); margin-top: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .eta-countdown .count-num {
+    background: var(--teal-50); color: var(--teal-700); font-weight: 600;
+    padding: 2px 8px; border-radius: 4px;
+  }
+
+  /* Action buttons bar */
+  .action-bar {
+    display: flex; gap: 10px; margin-top: 16px;
+  }
+  .action-bar .btn, .action-bar .btn-tel { flex: 1; justify-content: center; }
+
+  /* Animations */
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .card, .progress-bar-container { animation: fadeIn 0.4s ease-out both; }
+  .progress-bar-container { animation-delay: 0s; }
+  .card:nth-child(2) { animation-delay: 0.05s; }
+  .card:nth-child(3) { animation-delay: 0.1s; }
+  .card:nth-child(4) { animation-delay: 0.15s; }
+  .card:nth-child(5) { animation-delay: 0.2s; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar" data-role="patient">
+  <div class="sidebar-brand">Rx<span>Flow</span></div>
+  <div class="sidebar-role-tag">🏥 患者视角</div>
+  <nav id="sidebarNav"></nav>
+  <div class="sidebar-user">
+    <div class="avatar" id="sidebarAvatar">赵</div>
+    <div>
+      <div class="name" id="sidebarName">赵建国</div>
+      <div class="role" id="sidebarRole">患者</div>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">配送追踪</h1>
+      <span class="header-rxno">PRS-20260602-0012</span>
+      <span class="status-badge delivering">配送中</span>
+    </div>
+    <button class="btn btn-outline">← 返回</button>
+  </header>
+
+  <div class="content">
+    <!-- MAIN COLUMN -->
+    <div class="main-col">
+
+      <!-- Delivery Progress Bar -->
+      <div class="progress-bar-container">
+        <h3>配送进度</h3>
+        <div style="position:relative;padding:0 20px;">
+          <!-- Connectors drawn as background lines between steps -->
+          <div class="delivery-progress" role="list" aria-label="配送进度：共4步">
+            <!-- Step 1: Picked Up -->
+            <div class="dp-step done" style="position:relative;" role="listitem" aria-label="已取件：完成">
+              <div class="dp-connector done" style="left:50%;width:100%;top:17px;position:absolute;z-index:0;"></div>
+              <div class="dp-icon">✓</div>
+              <div class="dp-label">已取件</div>
+              <div class="dp-time">2026-06-03 10:30</div>
+            </div>
+            <!-- Step 2: In Transit -->
+            <div class="dp-step done" style="position:relative;" role="listitem" aria-label="运输中：完成">
+              <div class="dp-connector active" style="left:50%;width:100%;top:17px;position:absolute;z-index:0;"></div>
+              <div class="dp-icon">✓</div>
+              <div class="dp-label">运输中</div>
+              <div class="dp-time">2026-06-03 10:50</div>
+            </div>
+            <!-- Step 3: Delivering (Active) -->
+            <div class="dp-step active" style="position:relative;" role="listitem" aria-label="派送中：当前步骤">
+              <div class="dp-connector" style="left:50%;width:100%;top:17px;position:absolute;z-index:0;"></div>
+              <div class="dp-icon">●</div>
+              <div class="dp-label">派送中</div>
+              <div class="dp-time">预计 12:00 送达</div>
+            </div>
+            <!-- Step 4: Delivered (Future) -->
+            <div class="dp-step" role="listitem" aria-label="已送达：等待中">
+              <div class="dp-icon">○</div>
+              <div class="dp-label">已送达</div>
+              <div class="dp-time">等待签收</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map Placeholder -->
+      <div class="card">
+        <h3>实时位置</h3>
+        <div class="map-placeholder">
+          <div class="map-pin"></div>
+          <div class="map-address">📍 北京市朝阳区望京西园三区 401号楼 5单元 302</div>
+          <div class="map-loading">地图加载中...</div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;padding:8px 12px;background:var(--warm-50);border-radius:8px;font-size:12px;color:var(--warm-700);">
+          <span>📍 快递员当前位置：望京西路</span>
+          <span style="color:var(--teal-700);font-weight:500;">距您约 1.2 km</span>
+        </div>
+      </div>
+
+      <!-- Package Info -->
+      <div class="card">
+        <h3>包裹信息</h3>
+        <div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:16px;">
+          <div class="package-photo">📦</div>
+          <div style="flex:1;">
+            <div style="font-size:13px;font-weight:600;margin-bottom:8px;">药品清单</div>
+            <div class="drug-summary-item">
+              <span class="drug-dot"></span>阿司匹林肠溶片 <span class="drug-spec">100mg × 30片</span>
+            </div>
+            <div class="drug-summary-item">
+              <span class="drug-dot"></span>阿托伐他汀钙片 <span class="drug-spec">20mg × 14片</span>
+            </div>
+            <div class="drug-summary-item">
+              <span class="drug-dot"></span>美托洛尔缓释片 <span class="drug-spec">47.5mg × 14片</span>
+            </div>
+            <div class="drug-summary-item">
+              <span class="drug-dot"></span>单硝酸异山梨酯片 <span class="drug-spec">20mg × 28片</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--warm-700);padding:10px 12px;background:var(--warm-50);border-radius:8px;">
+          共 4 种药品 · 处方编号 PRS-20260602-0012 · 已由张医生审核通过
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="side-panel">
+      <!-- Courier Info -->
+      <div class="card">
+        <h3>快递员信息</h3>
+        <div class="courier-header">
+          <div class="courier-avatar">王</div>
+          <div>
+            <div class="courier-name">王师傅</div>
+            <div class="courier-id">工号：SF-1024 · 好评率 98%</div>
+          </div>
+        </div>
+        <div style="font-size:13px;">
+          <div class="info-row">
+            <span class="row-key">联系电话</span>
+            <a href="tel:13900005678" class="row-val" style="color:var(--teal-700);text-decoration:none;">📞 139****5678</a>
+          </div>
+          <div class="info-row">
+            <span class="row-key">快递单号</span>
+            <span class="row-val">SF1234567890</span>
+          </div>
+          <div class="info-row">
+            <span class="row-key">取件时间</span>
+            <span class="row-val">06-03 10:30</span>
+          </div>
+          <div class="info-row">
+            <span class="row-key">配送距离</span>
+            <span class="row-val">约 3.5 km</span>
+          </div>
+        </div>
+        <div style="margin-top:16px;">
+          <a href="tel:13900005678" class="btn-tel" style="width:100%;justify-content:center;">📞 联系快递员</a>
+        </div>
+      </div>
+
+      <!-- Estimated Delivery -->
+      <div class="card" style="background:linear-gradient(135deg, var(--teal-50), #fff);">
+        <h3>预计送达</h3>
+        <div class="eta-display">
+          <div class="eta-time">12:00</div>
+          <div class="eta-label">预计送达时间</div>
+          <div class="eta-countdown">
+            约 <span class="count-num">32</span> 分钟后送达
+          </div>
+        </div>
+        <div style="border-top:1px solid var(--warm-100);padding-top:12px;margin-top:8px;">
+          <div class="info-row">
+            <span class="row-key">收件地址</span>
+            <span class="row-val" style="font-size:12px;">望京西园三区 401-5-302</span>
+          </div>
+          <div class="info-row">
+            <span class="row-key">收件人</span>
+            <span class="row-val">赵建国</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sign Confirmation -->
+      <div class="card">
+        <h3>确认签收</h3>
+        <div style="font-size:13px;color:var(--warm-700);margin-bottom:16px;line-height:1.6;">
+          药品送达后，请核对药品清单并输入短信验证码完成签收。
+        </div>
+        <label id="smsCodeLabel" style="font-size:12px;font-weight:600;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;display:block;">短信验证码</label>
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+          <input type="text" id="smsCode" placeholder="输入6位验证码" maxlength="6" aria-labelledby="smsCodeLabel" style="flex:1;padding:10px 14px;border:1.5px solid var(--warm-200);border-radius:8px;font-size:15px;font-family:'DM Sans',sans-serif;letter-spacing:4px;text-align:center;outline:none;">
+          <button class="btn btn-outline" style="padding:8px 14px;font-size:11px;white-space:nowrap;flex-shrink:0;">发送验证码</button>
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;">确认签收</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var cfg = {
+    user: { name: '赵建国', role: '患者', avatar: '赵' },
+    menu: [
+      { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: false }] },
+      { section: '其他', items: [
+        { icon: '◈', label: '我的处方', href: 'patient-detail-mockup.html', active: false },
+        { icon: '◈', label: '配送追踪', href: 'patient-tracking-mockup.html', active: true },
+        { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+      ]}
+    ]
+  };
+  document.getElementById('sidebarNav').innerHTML = cfg.menu.map(function(section) {
+    return '<div class="sidebar-section-title">' + section.section + '</div>' + section.items.map(function(item) {
+      return '<a class="nav-item' + (item.active ? ' active' : '') + '" href="' + item.href + '">' + item.icon + ' ' + item.label + '</a>';
+    }).join('');
+  }).join('');
+})();
+</script>
+
+</body>
+</html>

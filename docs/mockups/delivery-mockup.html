@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RxFlow — 配送管理</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-900: #134e4a; --teal-700: #0f766e; --teal-500: #14b8a6; --teal-100: #ccfbf1; --teal-50: #f0fdfa;
+    --coral: #f43f5e; --coral-50: #fff1f2; --amber: #f59e0b; --amber-50: #fffbeb; --amber-100: #fef3c7;
+    --warm-50: #fafaf9; --warm-100: #f5f5f4; --warm-200: #e7e5e4; --warm-300: #d6d3d1; --warm-700: #44403c; --warm-900: #1c1917;
+    --green-50: #f0fdf4; --green-600: #16a34a; --blue-50: #eff6ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--warm-50); color: var(--warm-900);
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  .sidebar {
+    width: 220px; background: linear-gradient(180deg, #0d5c56 0%, var(--teal-900) 100%);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 32px; font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 24px; color: #fff; letter-spacing: -0.3px;
+  }
+  .sidebar-brand span { color: var(--teal-500); }
+  .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; margin: 2px 8px;
+    border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nav-item.active { color: #fff; background: rgba(255,255,255,0.12); font-weight: 600; }
+  .sidebar-user {
+    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px; margin-top: auto;
+  }
+  .sidebar-user .avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--teal-700); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+  }
+  .sidebar-user .name { font-size: 13px; color: #fff; font-weight: 500; }
+  .sidebar-user .role { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .header {
+    height: 56px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-bottom: 1px solid var(--warm-200); flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; }
+  .btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all 0.15s;
+    text-decoration: none; display: inline-block; text-align: center;
+  }
+  .btn-primary { background: var(--teal-700); color: #fff; }
+  .btn-primary:hover { background: var(--teal-900); }
+  .btn-primary:disabled { background: var(--warm-300); color: #fff; cursor: not-allowed; }
+  .btn-outline { background: #fff; color: var(--warm-700); border: 1.5px solid var(--warm-200); }
+  .btn-outline:hover { border-color: var(--warm-300); }
+  .btn-danger { background: var(--coral); color: #fff; }
+  .btn-danger:hover { background: #e11d48; }
+  .btn-teal-outline {
+    background: #fff; color: var(--teal-700); border: 1.5px solid var(--teal-500);
+  }
+  .btn-teal-outline:hover { background: var(--teal-50); border-color: var(--teal-700); }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 20px; }
+  .tab-item {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+    background: #fff; border: 1.5px solid var(--warm-200); color: var(--warm-700);
+    transition: all 0.15s;
+  }
+  .tab-item:hover { border-color: var(--teal-500); color: var(--teal-700); }
+  .tab-item.active { background: var(--teal-700); border-color: var(--teal-700); color: #fff; }
+  .tab-item .count { font-size: 11px; margin-left: 4px; opacity: 0.7; }
+
+  .delivery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 16px; }
+  .delivery-card {
+    background: #fff; border-radius: 12px; padding: 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    transition: all 0.2s; border: 1px solid transparent;
+  }
+  .delivery-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); transform: translateY(-1px); }
+  .delivery-card.urgent { border-left: 3px solid var(--coral); }
+
+  .dc-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+  .dc-rxno { font-size: 11px; color: var(--warm-700); font-weight: 500; }
+  .status-badge {
+    display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  }
+  .status-badge.delivering { background: #dbeafe; color: #1d4ed8; }
+  .status-badge.received { background: #f0fdf4; color: #166534; }
+  .status-badge.exception { background: #fef2f2; color: #991b1b; }
+  .status-badge.pickup { background: var(--amber-100); color: #92400e; }
+
+  .dc-patient { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .dc-avatar {
+    width: 36px; height: 36px; border-radius: 10px;
+    background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 15px; font-weight: 600; flex-shrink: 0;
+  }
+  .dc-name { font-weight: 600; font-size: 14px; }
+  .dc-phone { font-size: 11px; color: var(--warm-700); }
+
+  .dc-address {
+    font-size: 12px; color: var(--warm-700); margin-bottom: 10px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .dc-drugs {
+    font-size: 12px; color: var(--warm-700); margin-bottom: 12px;
+    padding: 8px 12px; background: var(--warm-50); border-radius: 6px;
+  }
+  .dc-time { font-size: 11px; color: var(--warm-300); margin-bottom: 12px; }
+
+  .dc-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  .dc-actions .btn { flex: 1; font-size: 11px; padding: 6px 12px; min-width: 80px; }
+  .tel-link {
+    display: inline-flex; align-items: center; gap: 4px; font-size: 11px;
+    color: var(--teal-700); font-weight: 500; text-decoration: none;
+    padding: 4px 8px; border-radius: 4px; transition: background 0.15s;
+  }
+  .tel-link:hover { background: var(--teal-100); }
+
+  .exception-reason {
+    margin: 8px 0; padding: 8px 12px; background: var(--coral-50);
+    border-radius: 6px; font-size: 12px; color: #be123c; border-left: 3px solid var(--coral);
+  }
+
+  /* Sign Confirmation Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100;
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff; border-radius: 16px; width: 500px; max-height: 80vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: modalIn 0.25s ease-out;
+  }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .modal-header {
+    padding: 20px 24px; border-bottom: 1px solid var(--warm-100);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 18px; }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px; border: none; background: var(--warm-100);
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { background: var(--warm-200); }
+  .modal-body { padding: 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--warm-100); display: flex; gap: 8px; justify-content: space-between; }
+
+  /* Sign flow steps progress bar */
+  .sign-steps { display: flex; gap: 0; margin-bottom: 24px; align-items: center; }
+  .sign-step {
+    flex: 1; text-align: center; position: relative;
+    padding: 12px 8px; font-size: 11px; color: var(--warm-300);
+    cursor: default;
+  }
+  .sign-step .step-num {
+    width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--warm-200);
+    display: flex; align-items: center; justify-content: center; margin: 0 auto 6px;
+    font-weight: 600; font-size: 12px; background: #fff;
+    transition: all 0.3s ease;
+  }
+  .sign-step.active .step-num { border-color: var(--teal-500); background: var(--teal-500); color: #fff; }
+  .sign-step.done .step-num { border-color: var(--teal-500); background: var(--teal-500); color: #fff; }
+  .sign-step.active { color: var(--teal-700); font-weight: 600; }
+  .sign-step.done { color: var(--teal-700); }
+  .sign-step::after {
+    content: ''; position: absolute; top: 26px; left: 60%; width: 80%; height: 2px;
+    background: var(--warm-200); transition: background 0.3s ease;
+  }
+  .sign-step.done::after { background: var(--teal-500); }
+  .sign-step:last-child::after { display: none; }
+
+  /* Step panel transition */
+  .step-panel-container { position: relative; overflow: hidden; }
+  .step-panel {
+    display: none; animation: stepFadeIn 0.35s ease-out;
+  }
+  .step-panel.active { display: block; }
+  @keyframes stepFadeIn {
+    from { opacity: 0; transform: translateX(24px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes stepFadeOut {
+    from { opacity: 1; transform: translateX(0); }
+    to { opacity: 0; transform: translateX(-24px); }
+  }
+
+  .checklist { margin-bottom: 20px; }
+  .checklist-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 0;
+    border-bottom: 1px solid var(--warm-100); font-size: 13px;
+  }
+  .checklist-item:last-child { border-bottom: none; }
+  .checklist-item input[type="checkbox"] {
+    width: 18px; height: 18px; accent-color: var(--teal-700); cursor: pointer; flex-shrink: 0;
+  }
+  .checklist-item .check-label { flex: 1; }
+  .checklist-item .qty { color: var(--warm-700); font-size: 12px; margin-left: auto; }
+
+  .upload-zone {
+    border: 2px dashed var(--warm-200); border-radius: 10px; padding: 32px;
+    text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 12px;
+  }
+  .upload-zone:hover { border-color: var(--teal-500); background: var(--teal-50); }
+  .upload-zone.uploaded { border-color: var(--green-600); background: var(--green-50); }
+  .upload-zone .upload-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-preview {
+    display: flex; gap: 8px; flex-wrap: wrap;
+  }
+  .upload-preview .thumb {
+    width: 72px; height: 72px; border-radius: 8px; background: var(--warm-100);
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+    border: 1px solid var(--warm-200);
+  }
+  .sms-input {
+    display: flex; gap: 8px; align-items: center;
+  }
+  .sms-input input {
+    flex: 1; padding: 10px 14px; border: 1.5px solid var(--warm-200);
+    border-radius: 8px; font-size: 15px; font-family: 'DM Sans', sans-serif;
+    letter-spacing: 4px; text-align: center; outline: none;
+  }
+  .sms-input input:focus { border-color: var(--teal-500); }
+  .sms-input input.verified { border-color: var(--green-600); background: var(--green-50); }
+
+  /* Exception upload */
+  .exception-upload {
+    border: 2px dashed var(--coral); border-radius: 10px; padding: 24px;
+    text-align: center; cursor: pointer; margin: 12px 0; background: var(--coral-50);
+    overflow: hidden; max-height: 300px; opacity: 1;
+    transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.3s ease, padding 0.3s ease;
+  }
+  .exception-upload.hidden {
+    max-height: 0; opacity: 0; margin: 0; padding-top: 0; padding-bottom: 0;
+    border-width: 0;
+  }
+  .exception-upload:hover { background: #ffe4e6; }
+
+  /* Exception type radio styling */
+  .ex-type-label {
+    display: flex; align-items: center; gap: 6px; padding: 10px;
+    border: 1.5px solid var(--warm-200); border-radius: 8px;
+    font-size: 13px; cursor: pointer; transition: all 0.2s;
+  }
+  .ex-type-label:hover { border-color: var(--teal-500); }
+  .ex-type-label.selected {
+    border-color: var(--coral); background: var(--coral-50);
+    font-weight: 500;
+  }
+  .ex-type-label input[type="radio"] { accent-color: var(--coral); }
+
+  /* Confirmation inline modal */
+  .confirm-inline {
+    display: none; padding: 12px; background: var(--teal-50);
+    border-radius: 8px; margin-top: 8px; font-size: 12px; color: var(--teal-700);
+    animation: fadeIn 0.25s ease-out;
+  }
+  .confirm-inline.show { display: block; }
+
+  /* Summary panel */
+  .summary-box {
+    background: var(--warm-50); border-radius: 10px; padding: 16px;
+    margin-bottom: 16px;
+  }
+  .summary-row {
+    display: flex; justify-content: space-between; padding: 6px 0;
+    font-size: 13px; border-bottom: 1px solid var(--warm-100);
+  }
+  .summary-row:last-child { border-bottom: none; }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .delivery-card { animation: fadeIn 0.4s ease-out both; }
+  .delivery-card:nth-child(1) { animation-delay: 0s; }
+  .delivery-card:nth-child(2) { animation-delay: 0.05s; }
+  .delivery-card:nth-child(3) { animation-delay: 0.1s; }
+  .delivery-card:nth-child(4) { animation-delay: 0.15s; }
+  .delivery-card:nth-child(5) { animation-delay: 0.2s; }
+</style>
+</head>
+<body>
+
+<!-- Sign Confirmation Modal with Sequential Wizard -->
+<div class="modal-overlay" id="signModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="signModalTitle">确认签收 · PRS-20260602-0012</h3>
+      <button class="modal-close" onclick="closeModal()" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- Step Progress Bar -->
+      <div class="sign-steps" id="signSteps">
+        <div class="sign-step active" data-step="1">
+          <div class="step-num">1</div>核对药品
+        </div>
+        <div class="sign-step" data-step="2">
+          <div class="step-num">2</div>签收凭证
+        </div>
+        <div class="sign-step" data-step="3">
+          <div class="step-num">3</div>确认签收
+        </div>
+      </div>
+
+      <div class="step-panel-container">
+        <!-- Step 1: Drug Checklist -->
+        <div class="step-panel active" id="stepPanel1">
+          <div style="font-weight:600;font-size:13px;margin-bottom:10px;">📋 药品核对清单</div>
+          <div class="checklist" id="drugChecklist">
+            <div class="checklist-item">
+              <input type="checkbox" id="drug1" onchange="checkStep1Complete()"> <label for="drug1" class="check-label">阿司匹林肠溶片</label> <span class="qty">100mg × 30片</span>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" id="drug2" onchange="checkStep1Complete()"> <label for="drug2" class="check-label">阿托伐他汀钙片</label> <span class="qty">20mg × 14片</span>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" id="drug3" onchange="checkStep1Complete()"> <label for="drug3" class="check-label">美托洛尔缓释片</label> <span class="qty">47.5mg × 14片</span>
+            </div>
+            <div class="checklist-item">
+              <input type="checkbox" id="drug4" onchange="checkStep1Complete()"> <label for="drug4" class="check-label">单硝酸异山梨酯片</label> <span class="qty">20mg × 28片</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Sign Proof -->
+        <div class="step-panel" id="stepPanel2">
+          <div style="font-weight:600;font-size:13px;margin-bottom:10px;">📸 签收凭证（二选一）</div>
+          <div class="upload-zone" id="uploadZone" onclick="simulateUpload()" role="button" tabindex="0" aria-label="点击上传签收凭证照片">
+            <div class="upload-icon" id="uploadIcon">📷</div>
+            <div style="font-size:13px;font-weight:500;" id="uploadText">拍照上传签收凭证</div>
+            <div style="font-size:11px;color:var(--warm-700);">点击上传或拖拽照片到此处</div>
+          </div>
+          <div class="upload-preview" id="uploadPreview" style="display:none;">
+            <div class="thumb" style="background:#dcfce7;font-size:12px;">✓ 已上传<br>sign-proof.jpg</div>
+          </div>
+          <div style="text-align:center;font-size:12px;color:var(--warm-300);margin:12px 0;">— 或 —</div>
+          <div class="sms-input">
+            <input type="text" id="smsCode" placeholder="输入验证码" maxlength="6" oninput="checkStep2Complete()">
+            <button class="btn btn-outline btn-sm" style="flex-shrink:0;" onclick="simulateSendSMS(event)">发送验证码</button>
+          </div>
+        </div>
+
+        <!-- Step 3: Confirm -->
+        <div class="step-panel" id="stepPanel3">
+          <div style="font-weight:600;font-size:13px;margin-bottom:12px;">✅ 签收信息确认</div>
+          <div class="summary-box">
+            <div class="summary-row"><span>患者姓名</span><span style="font-weight:500;">陈建国</span></div>
+            <div class="summary-row"><span>处方编号</span><span style="font-weight:500;">PRS-20260602-0012</span></div>
+            <div class="summary-row"><span>药品数量</span><span style="font-weight:500;">4 种</span></div>
+            <div class="summary-row"><span>签收时间</span><span style="font-weight:500;" id="confirmTime">—</span></div>
+            <div class="summary-row"><span>签收凭证</span><span style="font-weight:500;color:var(--green-600);">已提供</span></div>
+          </div>
+          <p style="font-size:12px;color:var(--warm-700);text-align:center;">确认后处方状态将更新为"已签收"，该操作不可撤销。</p>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer" id="wizardFooter">
+      <button class="btn btn-outline" id="btnPrev" onclick="prevStep()" style="visibility:hidden;">← 上一步</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-outline" onclick="closeModal()">取消</button>
+        <button class="btn btn-primary" id="btnNext" onclick="nextStep()" disabled>下一步 →</button>
+        <button class="btn btn-primary" id="btnConfirm" onclick="confirmSign()" style="display:none;font-size:15px;padding:10px 32px;">确认签收</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Exception Report Modal -->
+<div class="modal-overlay" id="exceptionModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>上报异常 · PRS-20260602-0012</h3>
+      <button class="modal-close" onclick="closeExceptionModal()" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">异常类型</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <label class="ex-type-label selected" id="exLabel1">
+            <input type="radio" name="exType" value="patient_reject" checked onchange="onExTypeChange()"> 患者拒收
+          </label>
+          <label class="ex-type-label" id="exLabel2">
+            <input type="radio" name="exType" value="address_error" onchange="onExTypeChange()"> 地址错误
+          </label>
+          <label class="ex-type-label" id="exLabel3">
+            <input type="radio" name="exType" value="unreachable" onchange="onExTypeChange()"> 联系不上
+          </label>
+          <label class="ex-type-label" id="exLabel4">
+            <input type="radio" name="exType" value="drug_damaged" onchange="onExTypeChange()"> 药品破损
+          </label>
+        </div>
+      </div>
+      <div class="exception-upload hidden" id="exceptionUpload">
+        <div style="font-size:24px;margin-bottom:4px;">📸</div>
+        <div style="font-size:12px;color:#be123c;font-weight:500;">药品破损需拍照留证（必填）</div>
+        <div style="font-size:11px;color:var(--warm-700);margin-top:4px;">点击上传破损药品照片</div>
+      </div>
+      <div style="margin-top:12px;">
+        <div style="font-size:11px;font-weight:600;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">备注说明</div>
+        <textarea style="width:100%;padding:10px;border:1.5px solid var(--warm-200);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;min-height:70px;resize:vertical;outline:none;" placeholder="请详细描述异常情况...">患者当场表示不需要该处方药品，要求退回。</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeExceptionModal()">取消</button>
+      <button class="btn btn-danger" onclick="closeExceptionModal()">确认上报异常</button>
+    </div>
+  </div>
+</div>
+
+<!-- Redeliver Confirmation Modal -->
+<div class="modal-overlay" id="redeliverModal">
+  <div class="modal" style="width:420px;">
+    <div class="modal-header">
+      <h3>重新配送</h3>
+      <button class="modal-close" onclick="closeRedeliverModal()" aria-label="关闭">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="text-align:center;padding:8px 0;">
+        <div style="font-size:36px;margin-bottom:12px;">🔄</div>
+        <p style="font-size:14px;color:var(--warm-700);line-height:1.6;">
+          确认对该处方重新安排配送？<br>将分配新的快递员。
+        </p>
+        <p style="font-size:12px;color:var(--warm-300);margin-top:8px;">处方编号：<span id="redeliverRxNo">PRS-20260602-0009</span></p>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeRedeliverModal()">取消</button>
+      <button class="btn btn-primary" onclick="confirmRedeliver()">确认重新配送</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sidebar: Courier role -->
+<aside class="sidebar" data-role="courier">
+  <div class="sidebar-brand">Rx<span>Flow</span></div>
+  <nav>
+    <div class="nav-section">主菜单</div>
+    <a class="nav-item">◈ 工作台</a>
+    <div class="nav-section">业务管理</div>
+    <a class="nav-item active">◈ 配送管理</a>
+    <div class="nav-section">其他</div>
+    <a class="nav-item">◈ 通知中心</a>
+  </nav>
+  <div class="sidebar-user">
+    <div class="avatar">王</div>
+    <div><div class="name">王师傅</div><div class="role">快递员</div></div>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">配送管理</h1>
+    </div>
+    <button class="btn btn-outline">刷新列表</button>
+  </header>
+
+  <div class="content">
+    <div class="tab-bar">
+      <div class="tab-item active">待取件 <span class="count">3</span></div>
+      <div class="tab-item">配送中 <span class="count">2</span></div>
+      <div class="tab-item">已签收 <span class="count">15</span></div>
+      <div class="tab-item">异常单 <span class="count">1</span></div>
+    </div>
+
+    <div class="delivery-grid">
+      <!-- Card 1: Awaiting pickup -->
+      <div class="delivery-card">
+        <div class="dc-header">
+          <span class="dc-rxno">PRS-20260603-0005</span>
+          <span class="status-badge pickup">待取药</span>
+        </div>
+        <div class="dc-patient">
+          <div class="dc-avatar">赵</div>
+          <div>
+            <div class="dc-name">赵建国</div>
+            <div class="dc-phone">
+              <a href="tel:13800004444" class="tel-link">📞 138****4444</a>
+            </div>
+          </div>
+        </div>
+        <div class="dc-address">📍 北京市朝阳区望京西园三区 401号楼 5单元 302</div>
+        <div class="dc-drugs">💊 硝苯地平控释片 30mg + 厄贝沙坦片 150mg · 共 2 种</div>
+        <div class="dc-time">🕐 审核通过：今天 09:45</div>
+        <div class="dc-actions">
+          <button class="btn btn-primary">✓ 确认取药</button>
+        </div>
+      </div>
+
+      <!-- Card 2: Awaiting pickup -->
+      <div class="delivery-card">
+        <div class="dc-header">
+          <span class="dc-rxno">PRS-20260603-0002</span>
+          <span class="status-badge pickup">待取药</span>
+        </div>
+        <div class="dc-patient">
+          <div class="dc-avatar" style="background:linear-gradient(135deg,#6366f1,#4f46e5);">王</div>
+          <div>
+            <div class="dc-name">王小明</div>
+            <div class="dc-phone">
+              <a href="tel:13900005555" class="tel-link">📞 139****5555</a>
+            </div>
+          </div>
+        </div>
+        <div class="dc-address">📍 北京市海淀区中关村南大街 12号 3层</div>
+        <div class="dc-drugs">💊 阿莫西林胶囊 + 布洛芬混悬液 + 盐酸氨溴索口服液 · 共 3 种</div>
+        <div class="dc-time">🕐 审核通过：今天 10:15</div>
+        <div class="dc-actions">
+          <button class="btn btn-primary">✓ 确认取药</button>
+        </div>
+      </div>
+
+      <!-- Card 3: In transit (可签收) -->
+      <div class="delivery-card">
+        <div class="dc-header">
+          <span class="dc-rxno">PRS-20260602-0012</span>
+          <span class="status-badge delivering">配送中</span>
+        </div>
+        <div class="dc-patient">
+          <div class="dc-avatar" style="background:linear-gradient(135deg,#0ea5e9,#0284c7);">陈</div>
+          <div>
+            <div class="dc-name">陈建国</div>
+            <div class="dc-phone">
+              <a href="tel:13600007777" class="tel-link">📞 136****7777</a>
+            </div>
+          </div>
+        </div>
+        <div class="dc-address">📍 北京市丰台区方庄芳古园一区 23号楼 1201</div>
+        <div class="dc-drugs">💊 阿司匹林肠溶片 + 阿托伐他汀钙片 + 美托洛尔缓释片 + 单硝酸异山梨酯片 · 共 4 种</div>
+        <div class="dc-time">🕐 取药时间：昨天 17:00 · 预计送达：今天 12:00</div>
+        <div class="dc-actions">
+          <button class="btn btn-primary" onclick="openModal()">📝 确认签收</button>
+          <a href="tel:13600007777" class="tel-link" style="padding:6px 12px;">📞 联系患者</a>
+          <button class="btn btn-outline btn-sm" style="flex:0.6;" onclick="openExceptionModal()">⚠ 异常</button>
+        </div>
+      </div>
+
+      <!-- Card 4: Exception -->
+      <div class="delivery-card urgent" id="exceptionCard">
+        <div class="dc-header">
+          <span class="dc-rxno">PRS-20260602-0009</span>
+          <span class="status-badge exception" id="exceptionBadge">配送异常</span>
+        </div>
+        <div class="dc-patient">
+          <div class="dc-avatar" style="background:linear-gradient(135deg,#84cc16,#65a30d);">孙</div>
+          <div>
+            <div class="dc-name">孙大爷</div>
+            <div class="dc-phone">
+              <a href="tel:13400009999" class="tel-link">📞 134****9999</a>
+            </div>
+          </div>
+        </div>
+        <div class="dc-address">📍 北京市西城区新街口外大街 8号院 5单元 101</div>
+        <div class="dc-drugs">💊 噻托溴铵粉吸入剂 + 沙美特罗替卡松粉吸入剂 + 茶碱缓释片 · 共 3 种</div>
+        <div class="exception-reason">⚠ 患者电话无人接听，已尝试联系 3 次。建议退回药房或申请人工处理。</div>
+        <div class="dc-time">🕐 异常报告：昨天 14:30</div>
+        <div class="dc-actions">
+          <button class="btn btn-danger">标记退回</button>
+          <a href="tel:13400009999" class="tel-link" style="padding:6px 12px;">📞 再次联系</a>
+          <button class="btn btn-teal-outline" onclick="openRedeliverModal('PRS-20260602-0009')">🔄 重新配送</button>
+        </div>
+      </div>
+
+      <!-- Card 5: Delivered -->
+      <div class="delivery-card">
+        <div class="dc-header">
+          <span class="dc-rxno">PRS-20260602-0010</span>
+          <span class="status-badge received">已签收</span>
+        </div>
+        <div class="dc-patient">
+          <div class="dc-avatar" style="background:linear-gradient(135deg,#ec4899,#db2777);">刘</div>
+          <div>
+            <div class="dc-name">刘美丽</div>
+            <div class="dc-phone">
+              <a href="tel:13500008888" class="tel-link">📞 135****8888</a>
+            </div>
+          </div>
+        </div>
+        <div class="dc-address">📍 北京市朝阳区双井富力城 D座 2206</div>
+        <div class="dc-drugs">💊 瑞舒伐他汀钙片 10mg · 共 1 种</div>
+        <div class="dc-time">🕐 签收时间：昨天 16:45 · 签收人：本人 · 凭证：拍照确认</div>
+        <div class="dc-actions">
+          <button class="btn btn-outline">查看详情</button>
+          <a class="tel-link" style="padding:6px 12px;" onclick="openRedeliverModal('PRS-20260602-0010')">🔄 再次配送</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ==================== Sign Wizard ====================
+let currentStep = 1;
+const totalSteps = 3;
+let uploadDone = false;
+let smsVerified = false;
+
+function openModal() {
+  document.getElementById('signModal').classList.add('show');
+  resetWizard();
+}
+
+function closeModal() {
+  document.getElementById('signModal').classList.remove('show');
+}
+
+function resetWizard() {
+  currentStep = 1;
+  uploadDone = false;
+  smsVerified = false;
+  // Reset checkboxes
+  document.querySelectorAll('#drugChecklist input[type=checkbox]').forEach(cb => cb.checked = false);
+  // Reset upload
+  document.getElementById('uploadZone').classList.remove('uploaded');
+  document.getElementById('uploadIcon').textContent = '📷';
+  document.getElementById('uploadText').textContent = '拍照上传签收凭证';
+  document.getElementById('uploadPreview').style.display = 'none';
+  // Reset SMS
+  const smsInput = document.getElementById('smsCode');
+  smsInput.value = '';
+  smsInput.classList.remove('verified');
+  // Show step 1
+  showAllPanels(1);
+  updateSteps(1);
+  updateWizardButtons();
+}
+
+function showAllPanels(step) {
+  for (let i = 1; i <= totalSteps; i++) {
+    const panel = document.getElementById('stepPanel' + i);
+    if (i === step) {
+      panel.classList.add('active');
+    } else {
+      panel.classList.remove('active');
+    }
+  }
+}
+
+function updateSteps(step) {
+  const steps = document.querySelectorAll('#signSteps .sign-step');
+  steps.forEach((el, idx) => {
+    const s = idx + 1;
+    el.classList.remove('active', 'done');
+    if (s < step) {
+      el.classList.add('done');
+      el.querySelector('.step-num').textContent = '✓';
+    } else if (s === step) {
+      el.classList.add('active');
+      el.querySelector('.step-num').textContent = s;
+    } else {
+      el.querySelector('.step-num').textContent = s;
+    }
+  });
+}
+
+function updateWizardButtons() {
+  const btnPrev = document.getElementById('btnPrev');
+  const btnNext = document.getElementById('btnNext');
+  const btnConfirm = document.getElementById('btnConfirm');
+
+  btnPrev.style.visibility = currentStep === 1 ? 'hidden' : 'visible';
+
+  if (currentStep === totalSteps) {
+    btnNext.style.display = 'none';
+    btnConfirm.style.display = 'inline-block';
+  } else {
+    btnNext.style.display = 'inline-block';
+    btnConfirm.style.display = 'none';
+    // Enable/disable Next based on current step validation
+    if (currentStep === 1) {
+      btnNext.disabled = !isStep1Complete();
+    } else if (currentStep === 2) {
+      btnNext.disabled = !isStep2Complete();
+    }
+  }
+}
+
+function isStep1Complete() {
+  const cbs = document.querySelectorAll('#drugChecklist input[type=checkbox]');
+  return Array.from(cbs).every(cb => cb.checked);
+}
+
+function isStep2Complete() {
+  return uploadDone || smsVerified;
+}
+
+function checkStep1Complete() {
+  updateWizardButtons();
+}
+
+function checkStep2Complete() {
+  const smsInput = document.getElementById('smsCode');
+  if (smsInput.value.length === 6) {
+    smsInput.classList.add('verified');
+    smsVerified = true;
+  } else {
+    smsInput.classList.remove('verified');
+    smsVerified = false;
+  }
+  updateWizardButtons();
+}
+
+function simulateUpload() {
+  uploadDone = true;
+  const zone = document.getElementById('uploadZone');
+  zone.classList.add('uploaded');
+  document.getElementById('uploadIcon').textContent = '✅';
+  document.getElementById('uploadText').textContent = '凭证已上传';
+  document.getElementById('uploadPreview').style.display = 'flex';
+  checkStep2Complete();
+}
+
+function simulateSendSMS(e) {
+  e.preventDefault();
+  const smsInput = document.getElementById('smsCode');
+  smsInput.value = '839264';
+  smsInput.classList.add('verified');
+  smsVerified = true;
+  updateWizardButtons();
+}
+
+function goToStep(step) {
+  currentStep = step;
+  showAllPanels(step);
+  updateSteps(step);
+  updateWizardButtons();
+}
+
+function nextStep() {
+  if (currentStep === 1 && !isStep1Complete()) return;
+  if (currentStep === 2 && !isStep2Complete()) return;
+  if (currentStep < totalSteps) {
+    currentStep++;
+    showAllPanels(currentStep);
+    updateSteps(currentStep);
+    if (currentStep === totalSteps) {
+      // Set confirm time
+      const now = new Date();
+      document.getElementById('confirmTime').textContent =
+        now.getFullYear() + '-' +
+        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+        String(now.getDate()).padStart(2, '0') + ' ' +
+        String(now.getHours()).padStart(2, '0') + ':' +
+        String(now.getMinutes()).padStart(2, '0');
+    }
+    updateWizardButtons();
+  }
+}
+
+function prevStep() {
+  if (currentStep > 1) {
+    currentStep--;
+    showAllPanels(currentStep);
+    updateSteps(currentStep);
+    updateWizardButtons();
+  }
+}
+
+function confirmSign() {
+  alert('签收成功！处方 PRS-20260602-0012 已标记为已签收。');
+  closeModal();
+}
+
+// ==================== Exception Modal ====================
+function openExceptionModal() {
+  document.getElementById('exceptionModal').classList.add('show');
+}
+
+function closeExceptionModal() {
+  document.getElementById('exceptionModal').classList.remove('show');
+}
+
+function onExTypeChange() {
+  const selected = document.querySelector('input[name="exType"]:checked').value;
+  const uploadDiv = document.getElementById('exceptionUpload');
+  const labels = document.querySelectorAll('.ex-type-label');
+
+  // Update label styling
+  labels.forEach(label => {
+    const radio = label.querySelector('input[type="radio"]');
+    if (radio.checked) {
+      label.classList.add('selected');
+    } else {
+      label.classList.remove('selected');
+    }
+  });
+
+  // Toggle photo upload for "drug_damaged"
+  if (selected === 'drug_damaged') {
+    uploadDiv.classList.remove('hidden');
+  } else {
+    uploadDiv.classList.add('hidden');
+  }
+}
+
+// ==================== Redeliver ====================
+function openRedeliverModal(rxNo) {
+  document.getElementById('redeliverRxNo').textContent = rxNo;
+  document.getElementById('redeliverModal').classList.add('show');
+}
+
+function closeRedeliverModal() {
+  document.getElementById('redeliverModal').classList.remove('show');
+}
+
+function confirmRedeliver() {
+  closeRedeliverModal();
+  // Update exception card status to delivering
+  const badge = document.getElementById('exceptionBadge');
+  if (badge) {
+    badge.textContent = '配送中';
+    badge.className = 'status-badge delivering';
+  }
+  const card = document.getElementById('exceptionCard');
+  if (card) {
+    card.classList.remove('urgent');
+    const reason = card.querySelector('.exception-reason');
+    if (reason) reason.style.display = 'none';
+    const time = card.querySelector('.dc-time');
+    if (time) time.textContent = '🕐 重新配送：刚刚 · 新快递员已分配';
+    const actions = card.querySelector('.dc-actions');
+    if (actions) {
+      actions.innerHTML = `
+        <button class="btn btn-primary" onclick="openModal()">📝 确认签收</button>
+        <a href="tel:13400009999" class="tel-link" style="padding:6px 12px;">📞 联系患者</a>
+        <button class="btn btn-outline btn-sm" style="flex:0.6;" onclick="openExceptionModal()">⚠ 异常</button>
+      `;
+    }
+  }
+}
+
+// ==================== Exception initial state ====================
+// Ensure photo upload is hidden on initial load (patient_reject is default)
+document.addEventListener('DOMContentLoaded', function() {
+  onExTypeChange();
+});
+</script>
+
+</body>
+</html>

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RxFlow — 处方列表</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-900: #134e4a; --teal-700: #0f766e; --teal-500: #14b8a6; --teal-100: #ccfbf1; --teal-50: #f0fdfa;
+    --coral: #f43f5e; --coral-50: #fff1f2; --amber: #f59e0b; --amber-50: #fffbeb; --amber-100: #fef3c7;
+    --warm-50: #fafaf9; --warm-100: #f5f5f4; --warm-200: #e7e5e4; --warm-300: #d6d3d1; --warm-700: #44403c; --warm-900: #1c1917;
+    --red-500: #ef4444; --red-50: #fef2f2;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--warm-50); color: var(--warm-900);
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  /* Sidebar */
+  .sidebar {
+    width: 220px; background: linear-gradient(180deg, #0d5c56 0%, var(--teal-900) 100%);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 32px; font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 24px; color: #fff; letter-spacing: -0.3px;
+  }
+  .sidebar-brand span { color: var(--teal-500); }
+  .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; margin: 2px 8px;
+    border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nav-item.active { color: #fff; background: rgba(255,255,255,0.12); font-weight: 600; }
+  .nav-item { transition: all 0.25s ease; }
+  .sidebar-section-title { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); }
+  .sidebar-user {
+    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px; margin-top: auto;
+  }
+  .sidebar-user .avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--teal-700); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+  }
+  .sidebar-user .name { font-size: 13px; color: #fff; font-weight: 500; }
+  .sidebar-user .role { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+  /* Main */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .header {
+    height: 56px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-bottom: 1px solid var(--warm-200); flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; }
+  .btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--teal-700); color: #fff; }
+  .btn-primary:hover { background: var(--teal-900); }
+  .btn-outline { background: #fff; color: var(--warm-700); border: 1.5px solid var(--warm-200); }
+  .btn-outline:hover { border-color: var(--warm-300); }
+  .btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 6px; }
+
+  /* Role Toggle */
+  .role-toggle {
+    display: flex; background: var(--warm-100); border-radius: 8px; padding: 3px; gap: 2px;
+  }
+  .role-option {
+    padding: 5px 14px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; background: transparent;
+    color: var(--warm-700); transition: all 0.15s;
+  }
+  .role-option.active { background: #fff; color: var(--teal-700); box-shadow: 0 1px 2px rgba(0,0,0,0.06); }
+  .role-option:hover:not(.active) { color: var(--warm-900); }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  /* Quick Toggle */
+  .quick-toggle {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 16px;
+  }
+  .quick-toggle-label {
+    font-size: 12px; color: var(--warm-700); font-weight: 500; margin-right: 4px;
+  }
+  .toggle-pill {
+    padding: 7px 18px; border-radius: 20px; font-size: 12px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: 1.5px solid var(--warm-200);
+    background: #fff; color: var(--warm-700); transition: all 0.15s;
+  }
+  .toggle-pill:hover { border-color: var(--teal-500); color: var(--teal-700); }
+  .toggle-pill.active { background: var(--teal-700); color: #fff; border-color: var(--teal-700); }
+
+  /* Filter bar */
+  .filter-bar {
+    background: #fff; border-radius: 12px; padding: 16px 20px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap;
+  }
+  .filter-bar select, .filter-bar input {
+    padding: 8px 14px; border: 1.5px solid var(--warm-200); border-radius: 8px;
+    font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; background: #fff;
+    transition: border-color 0.15s;
+  }
+  .filter-bar select:focus, .filter-bar input:focus { border-color: var(--teal-500); }
+  .filter-bar input { width: 200px; }
+  .filter-bar input::placeholder { color: var(--warm-300); }
+  .filter-spacer { flex: 1; }
+
+  /* Batch bar */
+  .batch-bar {
+    background: var(--teal-900); color: #fff; border-radius: 10px;
+    padding: 10px 20px; margin-bottom: 16px;
+    display: flex; align-items: center; gap: 16px;
+    opacity: 0; max-height: 0; overflow: hidden;
+    transition: opacity 0.25s ease, max-height 0.3s ease, margin-bottom 0.25s ease, padding-top 0.25s ease, padding-bottom 0.25s ease;
+  }
+  .batch-bar.show {
+    opacity: 1; max-height: 60px; margin-bottom: 16px; padding-top: 10px; padding-bottom: 10px;
+  }
+  .batch-bar .batch-text { font-size: 13px; font-weight: 500; }
+  .batch-bar .btn-batch {
+    padding: 6px 16px; border-radius: 6px; font-size: 12px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none;
+    background: var(--teal-500); color: var(--teal-900); transition: background 0.15s;
+  }
+  .batch-bar .btn-batch:hover { background: var(--teal-100); }
+  .batch-bar .batch-cancel {
+    font-size: 12px; color: rgba(255,255,255,0.7); cursor: pointer; font-weight: 500;
+    background: none; border: none; font-family: 'DM Sans', sans-serif; padding: 0;
+  }
+  .batch-bar .batch-cancel:hover { color: #fff; }
+
+  /* Table card */
+  .card {
+    background: #fff; border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    overflow: hidden;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    text-align: left; padding: 12px 16px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--warm-700); background: var(--warm-50);
+    border-bottom: 2px solid var(--warm-200); font-weight: 600;
+  }
+  thead th.check-col { width: 40px; padding: 12px 12px; }
+  tbody td { padding: 14px 16px; border-bottom: 1px solid var(--warm-100); vertical-align: middle; }
+  tbody td.check-col { padding: 14px 12px; }
+  tbody tr:hover { background: var(--teal-50); }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.hidden-row { display: none; }
+
+  .rx-no { font-weight: 600; color: var(--warm-900); font-size: 12px; }
+  .patient-cell { font-weight: 500; }
+  .diagnosis-cell { color: var(--warm-700); max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .drug-count { font-size: 12px; color: var(--warm-700); }
+
+  .status-badge {
+    display: inline-block; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: 600;
+  }
+  .status-badge.draft { background: var(--warm-100); color: var(--warm-700); }
+  .status-badge.pending { background: var(--amber-50); color: #92400e; }
+  .status-badge.approved { background: var(--teal-100); color: var(--teal-700); }
+  .status-badge.rejected { background: var(--coral-50); color: #be123c; }
+  .status-badge.delivering { background: #dbeafe; color: #1d4ed8; }
+  .status-badge.received { background: #f0fdf4; color: #166534; }
+  .status-badge.exception { background: #fef2f2; color: #991b1b; }
+
+  /* Resubmit tag */
+  .resubmit-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
+    background: #ede9fe; color: #6d28d9; margin-left: 4px; vertical-align: middle;
+  }
+
+  /* Urgency badges */
+  .time-cell { font-size: 12px; display: flex; align-items: center; gap: 6px; }
+  .urgency-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
+    white-space: nowrap;
+  }
+  .urgency-urgent { background: var(--amber-100); color: #92400e; }
+  .urgency-critical { background: var(--red-50); color: #991b1b; }
+
+  .actions { display: flex; gap: 6px; }
+  .action-link {
+    font-size: 12px; color: var(--teal-700); cursor: pointer; font-weight: 500; text-decoration: none;
+    padding: 4px 8px; border-radius: 4px; transition: background 0.15s;
+  }
+  .action-link:hover { background: var(--teal-100); }
+  .action-link.danger { color: var(--coral); }
+  .action-link.danger:hover { background: var(--coral-50); }
+
+  /* Role-aware visibility */
+  .doctor-only, .assistant-only { display: none; }
+  body[data-role="doctor"] .doctor-only { display: inline-flex; }
+  body[data-role="assistant"] .assistant-only { display: inline-flex; }
+
+  /* Checkbox styling */
+  input[type="checkbox"] {
+    width: 16px; height: 16px; cursor: pointer; accent-color: var(--teal-700);
+  }
+
+  /* Pagination */
+  .pagination {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-top: 1px solid var(--warm-100);
+  }
+  .pagination-info { font-size: 12px; color: var(--warm-700); }
+  .pagination-btns { display: flex; gap: 4px; }
+  .page-btn {
+    width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--warm-200);
+    background: #fff; font-size: 12px; font-weight: 500; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; transition: all 0.15s;
+    font-family: 'DM Sans', sans-serif;
+  }
+  .page-btn:hover { border-color: var(--teal-500); color: var(--teal-700); }
+  .page-btn.active { background: var(--teal-700); color: #fff; border-color: var(--teal-700); }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .quick-toggle, .filter-bar, .card { animation: fadeIn 0.4s ease-out both; }
+  .filter-bar { animation-delay: 0.03s; }
+  .card { animation-delay: 0.05s; }
+</style>
+</head>
+<body data-role="doctor">
+
+<aside class="sidebar">
+  <div class="sidebar-brand">Rx<span>Flow</span></div>
+  <nav id="sidebarNav"></nav>
+  <div class="sidebar-user">
+    <div class="avatar" id="sidebarAvatar">张</div>
+    <div><div class="name" id="sidebarName">张医生</div><div class="role" id="sidebarRole">主治医师</div></div>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">处方管理</h1>
+      <span style="font-size:12px;color:var(--warm-700);">共 27 张</span>
+    </div>
+    <div class="header-right">
+      <div class="role-toggle" id="roleToggle">
+        <button class="role-option active" data-role="doctor">医生视角</button>
+        <button class="role-option" data-role="assistant">助理视角</button>
+      </div>
+      <button class="btn btn-primary assistant-only" id="btnNewRx">+ 新建处方</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <!-- Batch Action Bar -->
+    <div class="batch-bar" id="batchBar">
+      <span class="batch-text" id="batchCount">已选择 0 张处方</span>
+      <button class="btn-batch" id="batchSubmit" style="display:none;">批量提交审核</button>
+      <button class="batch-cancel" id="batchCancel">取消选择</button>
+    </div>
+
+    <!-- Quick Toggle -->
+    <div class="quick-toggle" id="quickToggle">
+      <span class="quick-toggle-label">快捷筛选：</span>
+      <button class="toggle-pill active" data-filter="all">全部</button>
+      <button class="toggle-pill" data-filter="draft">我的草稿 (3)</button>
+      <button class="toggle-pill" data-filter="submitted">我的提交 (7)</button>
+    </div>
+
+    <div class="filter-bar">
+      <select id="statusFilter">
+        <option value="">全部状态</option>
+        <option value="draft">草稿</option>
+        <option value="pending">待审核</option>
+        <option value="approved">已通过</option>
+        <option value="rejected">已驳回</option>
+        <option value="delivering">配送中</option>
+        <option value="received">已签收</option>
+        <option value="exception">配送异常</option>
+      </select>
+      <select id="timeFilter">
+        <option>全部时间</option>
+        <option>今天</option>
+        <option>最近 7 天</option>
+        <option>最近 30 天</option>
+      </select>
+      <input type="text" placeholder="搜索患者姓名 / 处方编号...">
+      <span class="filter-spacer"></span>
+      <button class="btn btn-outline">重置</button>
+    </div>
+
+    <div class="card">
+      <table>
+        <thead>
+          <tr>
+            <th class="check-col"><input type="checkbox" id="selectAll" title="全选"></th>
+            <th>处方编号</th>
+            <th>患者</th>
+            <th>诊断</th>
+            <th>药品数</th>
+            <th>状态</th>
+            <th>创建人</th>
+            <th>时间</th>
+            <th>操作</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Row 1: Pending + Resubmitted -->
+          <tr data-status="pending">
+            <td class="check-col"><input type="checkbox" class="row-checkbox" aria-label="选择 PRS-20260603-0001"></td>
+            <td class="rx-no">PRS-20260603-0001</td>
+            <td class="patient-cell">赵建国</td>
+            <td class="diagnosis-cell">高血压病 2 级，规律服药，血压控制可</td>
+            <td class="drug-count">2 种</td>
+            <td>
+              <span class="status-badge pending">待审核</span>
+              <span class="resubmit-tag">重提</span>
+            </td>
+            <td>李助理</td>
+            <td>
+              <div class="time-cell">
+                <span style="color:var(--warm-700);">08:45</span>
+              </div>
+            </td>
+            <td class="actions">
+              <span class="doctor-only"><a class="action-link" href="javascript:void(0)">审核</a><a class="action-link danger" href="javascript:void(0)">驳回</a></span>
+              <span class="assistant-only"><a class="action-link" href="javascript:void(0)">查看</a></span>
+            </td>
+          </tr>
+          <!-- Row 2: Approved -->
+          <tr data-status="approved">
+            <td class="check-col"><input type="checkbox" class="row-checkbox" aria-label="选择 PRS-20260603-0002"></td>
+            <td class="rx-no">PRS-20260603-0002</td>
+            <td class="patient-cell">王小明</td>
+            <td class="diagnosis-cell">急性上呼吸道感染，发热 38.5°C</td>
+            <td class="drug-count">3 种</td>
+            <td><span class="status-badge approved">已通过</span></td>
+            <td>李助理</td>
+            <td>
+              <div class="time-cell">
+                <span style="color:var(--warm-700);">09:10</span>
+              </div>
+            </td>
+            <td class="actions">
+              <a class="action-link" href="javascript:void(0)">查看</a>
+              <span class="doctor-only"><a class="action-link danger" href="javascript:void(0)">撤销</a></span>
+            </td>
+          </tr>
+          <!-- Row 3: Rejected -->
+          <tr data-status="rejected">
+            <td class="check-col"><input type="checkbox" class="row-checkbox" aria-label="选择 PRS-20260603-0003"></td>
+            <td class="rx-no">PRS-20260603-0003</td>
+            <td class="patient-cell">李奶奶</td>
+            <td class="diagnosis-cell">2型糖尿病，血糖控制不佳，糖化 8.2%</td>
+            <td class="drug-count">2 种</td>
+            <td><span class="status-badge rejected">已驳回</span></td>
+            <td>李助理</td>
+            <td>
+              <div class="time-cell">
+                <span style="color:var(--warm-700);">09:30</span>
+              </div>
+            </td>
+            <td class="actions">
+              <span class="doctor-only"><a class="action-link" href="javascript:void(0)">查看</a></span>
+              <span class="assistant-only">
+                <a class="action-link" href="javascript:void(0)">修改</a>
+                <a class="action-link danger" href="javascript:void(0)">删除</a>
+              </span>
+            </td>
+          </tr>
+          <!-- Row 4: Delivering -> Urgent -->
+          <tr data-status="delivering">
+            <td class="check-col"><input type="checkbox" class="row-checkbox" aria-label="选择 PRS-20260602-0012"></td>
+            <td class="rx-no">PRS-20260602-0012</td>
+            <td class="patient-cell">陈建国</td>
+            <td class="diagnosis-cell">冠状动脉粥样硬化性心脏病，稳定型</td>
+            <td class="drug-count">4 种</td>
+            <td><span class="status-badge delivering">配送中</span></td>
+            <td>李助理</td>
+            <td>
+              <div class="time-cell">
+                <span style="color:var(--warm-700);">昨天 16:20</span>
+                <span class="urgency-badge urgency-urgent">超24h</span>
+              </div>
+            </td>
+            <td class="actions">
+              <a class="action-link" href="javascript:void(0)">追踪</a>
+            </td>
+          </tr>
+          <!-- Row 5: Received -> Urgent -->
+          <tr data-status="received">
+            <td class="check-col"><input type="checkbox" class="row-checkbox" aria-label="选择 PRS-20260602-0010"></td>
+            <td class="rx-no">PRS-20260602-0010</td>
+            <td class="patient-cell">刘美丽</td>
+            <td class="diagnosis-cell">高脂血症，混合型，TG 3.2mmol/L</td>
+            <td class="drug-count">1 种</td>
+            <td><span class="status-badge received">已签收</span></td>
+            <td>李助理</td>
+            <td>
+              <div class="time-cell">
+                <span style="color:var(--warm-700);">昨天 14:05</span>
+                <span class="urgency-badge urgency-urgent">超24h</span>
+              </div>
+            </td>
+            <td class="actions">
+              <a class="action-link" href="javascript:void(0)">查看</a>
+            </td>
+          </tr>
+          <!-- Row 6: Exception -> Critical -->
+          <tr data-status="exception">
+            <td class="check-col"><input type="checkbox" class="row-checkbox" aria-label="选择 PRS-20260602-0009"></td>
+            <td class="rx-no">PRS-20260602-0009</td>
+            <td class="patient-cell">孙大爷</td>
+            <td class="diagnosis-cell">慢性阻塞性肺疾病，稳定期</td>
+            <td class="drug-count">3 种</td>
+            <td><span class="status-badge exception">配送异常</span></td>
+            <td>李助理</td>
+            <td>
+              <div class="time-cell">
+                <span style="color:var(--warm-700);">2天前 11:30</span>
+                <span class="urgency-badge urgency-critical">超48h</span>
+              </div>
+            </td>
+            <td class="actions">
+              <a class="action-link" href="javascript:void(0)">处理</a>
+              <a class="action-link" href="javascript:void(0)">查看</a>
+            </td>
+          </tr>
+          <!-- Row 7: Draft -> Urgent -->
+          <tr data-status="draft">
+            <td class="check-col"><input type="checkbox" class="row-checkbox" aria-label="选择 PRS-20260602-0008"></td>
+            <td class="rx-no">PRS-20260602-0008</td>
+            <td class="patient-cell">周阿姨</td>
+            <td class="diagnosis-cell">骨质疏松症，腰椎压缩性骨折术后</td>
+            <td class="drug-count">2 种</td>
+            <td><span class="status-badge draft">草稿</span></td>
+            <td>李助理</td>
+            <td>
+              <div class="time-cell">
+                <span style="color:var(--warm-700);">昨天 10:15</span>
+                <span class="urgency-badge urgency-urgent">超24h</span>
+              </div>
+            </td>
+            <td class="actions">
+              <span class="doctor-only"><a class="action-link" href="javascript:void(0)">查看</a></span>
+              <span class="assistant-only">
+                <a class="action-link" href="javascript:void(0)">编辑</a>
+                <a class="action-link" href="javascript:void(0)">提交</a>
+                <a class="action-link danger" href="javascript:void(0)">删除</a>
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pagination">
+        <div class="pagination-info">第 1-7 条，共 27 条</div>
+        <div class="pagination-btns">
+          <button class="page-btn">‹</button>
+          <button class="page-btn active">1</button>
+          <button class="page-btn">2</button>
+          <button class="page-btn">3</button>
+          <button class="page-btn">4</button>
+          <button class="page-btn">›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  /* ========== 1. Quick Toggle: 我的草稿 / 我的提交 ========== */
+  const quickToggle = document.getElementById('quickToggle');
+  const togglePills = quickToggle.querySelectorAll('.toggle-pill');
+  const tableRows = document.querySelectorAll('tbody tr');
+
+  togglePills.forEach(function(pill) {
+    pill.addEventListener('click', function() {
+      togglePills.forEach(function(p) { p.classList.remove('active'); });
+      pill.classList.add('active');
+      var filter = pill.getAttribute('data-filter');
+
+      tableRows.forEach(function(row) {
+        if (filter === 'all') {
+          row.classList.remove('hidden-row');
+        } else if (filter === 'draft') {
+          row.classList.toggle('hidden-row', row.getAttribute('data-status') !== 'draft');
+        } else if (filter === 'submitted') {
+          row.classList.toggle('hidden-row', row.getAttribute('data-status') === 'draft');
+        }
+      });
+    });
+  });
+
+  /* ========== 2. Batch Operations: Checkboxes + Floating Bar ========== */
+  var selectAll = document.getElementById('selectAll');
+  var rowCheckboxes = document.querySelectorAll('.row-checkbox');
+  var batchBar = document.getElementById('batchBar');
+  var batchCount = document.getElementById('batchCount');
+  var batchSubmitBtn = document.getElementById('batchSubmit');
+  var batchCancel = document.getElementById('batchCancel');
+
+  function updateBatchBar() {
+    var checked = document.querySelectorAll('.row-checkbox:checked');
+    var count = checked.length;
+
+    if (count > 0) {
+      batchBar.classList.add('show');
+      batchCount.textContent = '已选择 ' + count + ' 张处方';
+
+      // Show "批量提交审核" only if all checked rows are draft
+      var allDraft = true;
+      checked.forEach(function(cb) {
+        if (cb.closest('tr').getAttribute('data-status') !== 'draft') {
+          allDraft = false;
+        }
+      });
+      batchSubmitBtn.style.display = allDraft ? 'inline-block' : 'none';
+    } else {
+      batchBar.classList.remove('show');
+    }
+  }
+
+  selectAll.addEventListener('change', function() {
+    rowCheckboxes.forEach(function(cb) {
+      cb.checked = selectAll.checked;
+    });
+    updateBatchBar();
+  });
+
+  rowCheckboxes.forEach(function(cb) {
+    cb.addEventListener('change', function() {
+      // Update selectAll state
+      var allChecked = true;
+      rowCheckboxes.forEach(function(c) { if (!c.checked) allChecked = false; });
+      selectAll.checked = allChecked;
+      selectAll.indeterminate = !allChecked && document.querySelectorAll('.row-checkbox:checked').length > 0;
+      updateBatchBar();
+    });
+  });
+
+  batchCancel.addEventListener('click', function() {
+    selectAll.checked = false;
+    rowCheckboxes.forEach(function(cb) { cb.checked = false; });
+    selectAll.indeterminate = false;
+    updateBatchBar();
+  });
+
+  batchSubmitBtn.addEventListener('click', function() {
+    var checked = document.querySelectorAll('.row-checkbox:checked');
+    var ids = [];
+    checked.forEach(function(cb) {
+      var rxEl = cb.closest('tr').querySelector('.rx-no');
+      if (rxEl) ids.push(rxEl.textContent);
+    });
+    alert('提交审核：' + ids.join(', '));
+  });
+
+  /* ========== 3. Status Filter Fix (done in HTML — all 8 options present) ========== */
+  var statusFilter = document.getElementById('statusFilter');
+  statusFilter.addEventListener('change', function() {
+    var val = statusFilter.value;
+    tableRows.forEach(function(row) {
+      if (!val) {
+        row.classList.remove('hidden-row');
+      } else {
+        row.classList.toggle('hidden-row', row.getAttribute('data-status') !== val);
+      }
+    });
+  });
+
+  /* ========== 4. Urgency Color Markers (done in HTML with badges) ========== */
+
+  /* ========== 5. Resubmission 重提 Tag (done in HTML on 赵建国 row) ========== */
+
+  /* ========== 6. Role Toggle ========== */
+  var roleToggle = document.getElementById('roleToggle');
+  var roleOptions = roleToggle.querySelectorAll('.role-option');
+
+  var roleMenus = {
+    assistant: {
+      user: { name: '李助理', role: '医生助理', avatar: '李' },
+      menu: [
+        { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: false }] },
+        { section: '业务管理', items: [
+          { icon: '◈', label: '处方管理', href: 'prescription-list-mockup.html', active: true },
+          { icon: '◈', label: '新建处方', href: 'prescription-form-mockup.html', active: false },
+          { icon: '◈', label: '患者管理', href: 'patient-list-mockup.html', active: false }
+        ]},
+        { section: '其他', items: [
+          { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+        ]}
+      ]
+    },
+    doctor: {
+      user: { name: '张医生', role: '主治医师', avatar: '张' },
+      menu: [
+        { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: false }] },
+        { section: '业务管理', items: [
+          { icon: '◈', label: '处方审核', href: 'prescription-list-mockup.html', active: true },
+          { icon: '◈', label: '患者管理', href: 'patient-list-mockup.html', active: false }
+        ]},
+        { section: '其他', items: [
+          { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+        ]}
+      ]
+    }
+  };
+
+  function renderSidebar(role) {
+    var cfg = roleMenus[role];
+    if (!cfg) return;
+    document.getElementById('sidebarName').textContent = cfg.user.name;
+    document.getElementById('sidebarRole').textContent = cfg.user.role;
+    document.getElementById('sidebarAvatar').textContent = cfg.user.avatar;
+    var nav = document.getElementById('sidebarNav');
+    nav.innerHTML = cfg.menu.map(function(section) {
+      var items = section.items.map(function(item) {
+        return '<a class="nav-item' + (item.active ? ' active' : '') + '" href="' + item.href + '">' + item.icon + ' ' + item.label + '</a>';
+      }).join('');
+      return '<div class="sidebar-section-title">' + section.section + '</div>' + items;
+    }).join('');
+  }
+
+  function applyRole(role) {
+    document.body.setAttribute('data-role', role);
+
+    roleOptions.forEach(function(opt) {
+      opt.classList.toggle('active', opt.getAttribute('data-role') === role);
+    });
+
+    renderSidebar(role);
+    document.querySelector('.page-title').textContent = '处方管理';
+  }
+
+  roleOptions.forEach(function(opt) {
+    opt.addEventListener('click', function() {
+      applyRole(opt.getAttribute('data-role'));
+    });
+  });
+
+  // Initialize: doctor view is default (matches body data-role="doctor")
+  applyRole('doctor');
+
+})();
+</script>
+
+</body>
+</html>

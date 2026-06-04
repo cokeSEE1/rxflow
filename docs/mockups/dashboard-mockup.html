@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RxFlow — 工作台</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-900: #134e4a; --teal-700: #0f766e; --teal-500: #14b8a6; --teal-100: #ccfbf1; --teal-50: #f0fdfa;
+    --coral: #f43f5e; --coral-50: #fff1f2; --amber: #f59e0b; --amber-50: #fffbeb; --amber-100: #fef3c7;
+    --warm-50: #fafaf9; --warm-100: #f5f5f4; --warm-200: #e7e5e4; --warm-300: #d6d3d1; --warm-700: #44403c; --warm-900: #1c1917;
+    --indigo: #6366f1; --indigo-50: #eef2ff;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-hover: 0 4px 16px rgba(0,0,0,0.08);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--warm-50); color: var(--warm-900);
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  .sidebar {
+    width: 220px; background: linear-gradient(180deg, #0d5c56 0%, var(--teal-900) 100%);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 32px; font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 24px; color: #fff; letter-spacing: -0.3px;
+  }
+  .sidebar-brand span { color: var(--teal-500); }
+  .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; margin: 2px 8px;
+    border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500; cursor: pointer;
+    text-decoration: none;
+  }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nav-item.active { color: #fff; background: rgba(255,255,255,0.12); font-weight: 600; }
+  .nav-item { transition: all 0.25s ease; }
+  .sidebar-section-title { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); }
+  .sidebar-user {
+    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px; margin-top: auto;
+  }
+  .sidebar-user .avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--teal-700); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+  }
+  .sidebar-user .name { font-size: 13px; color: #fff; font-weight: 500; }
+  .sidebar-user .role { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .header {
+    height: 56px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-bottom: 1px solid var(--warm-200); flex-shrink: 0;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; }
+  .notif-bell {
+    position: relative; cursor: pointer; font-size: 18px;
+    width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--warm-100); transition: all 0.15s;
+  }
+  .notif-bell:hover { background: var(--warm-200); }
+  .notif-bell .badge {
+    position: absolute; top: 4px; right: 4px;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--coral);
+  }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  /* Role switcher */
+  .role-tabs { display: flex; gap: 4px; margin-bottom: 24px; }
+  .role-tab {
+    padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer;
+    background: #fff; border: 1.5px solid var(--warm-200); color: var(--warm-700);
+    transition: all 0.15s;
+  }
+  .role-tab:hover { border-color: var(--teal-500); color: var(--teal-700); }
+  .role-tab.active { background: var(--teal-700); border-color: var(--teal-700); color: #fff; }
+
+  .section-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 18px; margin-bottom: 16px; }
+
+  /* Stat Cards */
+  .stat-grid { display: grid; gap: 16px; margin-bottom: 28px; }
+  .stat-grid.col4 { grid-template-columns: repeat(4, 1fr); }
+  .stat-grid.col3 { grid-template-columns: repeat(3, 1fr); }
+  .stat-card {
+    background: #fff; border-radius: 12px; padding: 20px 24px;
+    box-shadow: var(--shadow-card); transition: all 0.2s; cursor: default;
+    border: 1px solid transparent; position: relative; overflow: hidden;
+  }
+  .stat-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+  .stat-card::before {
+    content: ''; position: absolute; top: 0; left: 0; width: 3px; height: 100%;
+    border-radius: 3px 0 0 3px;
+  }
+  .stat-card.draft::before { background: var(--warm-300); }
+  .stat-card.pending::before { background: var(--amber); }
+  .stat-card.rejected::before { background: var(--coral); }
+  .stat-card.approved::before { background: var(--teal-500); }
+  .stat-card.delivering::before { background: #3b82f6; }
+  .stat-card.received::before { background: #22c55e; }
+  .stat-card.urgent::before { background: #ef4444; }
+  .stat-card .number { font-family: 'DM Serif Display', Georgia, serif; font-size: 36px; line-height: 1; }
+  .stat-card .label { font-size: 12px; color: var(--warm-700); margin-top: 6px; letter-spacing: 0.3px; }
+  .stat-card.draft .number { color: var(--warm-700); }
+  .stat-card.pending .number { color: var(--amber); }
+  .stat-card.rejected .number { color: var(--coral); }
+  .stat-card.approved .number { color: var(--teal-700); }
+  .stat-card.delivering .number { color: #3b82f6; }
+  .stat-card.received .number { color: #22c55e; }
+  .stat-card.urgent .number { color: #ef4444; }
+
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .card-panel {
+    background: #fff; border-radius: 12px; padding: 20px 24px;
+    box-shadow: var(--shadow-card);
+  }
+  .card-panel h4 { font-size: 14px; font-weight: 600; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .card-panel h4 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); }
+
+  .mini-list { display: flex; flex-direction: column; }
+  .mini-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 0; border-bottom: 1px solid var(--warm-100); font-size: 13px;
+  }
+  .mini-item:hover { background: var(--warm-50); margin: 0 -12px; padding: 10px 12px; border-radius: 6px; }
+  .mini-item:last-child { border-bottom: none; }
+  .mini-item .patient { font-weight: 500; min-width: 72px; }
+  .mini-item .diagnosis { color: var(--warm-700); flex: 1; margin: 0 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini-item .time-ago { font-size: 11px; color: var(--warm-300); min-width: 60px; text-align: right; }
+
+  .status-badge {
+    padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; flex-shrink: 0;
+  }
+  .status-badge.rejected { background: #ffe4e6; color: #be123c; }
+  .status-badge.pending { background: var(--amber-100); color: #92400e; }
+  .status-badge.approved { background: var(--teal-100); color: var(--teal-700); }
+  .status-badge.delivering { background: #dbeafe; color: #1d4ed8; }
+  .status-badge.urgent { background: #fee2e2; color: #991b1b; }
+  .status-badge.resubmit { background: var(--indigo-50); color: #4338ca; }
+
+  .view-all { font-size: 12px; color: var(--teal-700); text-decoration: none; font-weight: 500; display: block; margin-top: 12px; }
+
+  /* Activity */
+  .activity-item { display: flex; gap: 12px; padding: 8px 0; font-size: 13px; align-items: flex-start; }
+  .activity-dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+  .activity-dot.approved { background: var(--teal-500); }
+  .activity-dot.submitted { background: var(--indigo); }
+  .activity-dot.rejected { background: var(--coral); }
+  .activity-dot.delivered { background: #22c55e; }
+  .activity-text { color: var(--warm-700); line-height: 1.5; }
+  .activity-text strong { color: var(--warm-900); }
+
+  /* Patient specific */
+  .rx-card {
+    background: #fff; border-radius: 12px; padding: 20px 24px;
+    box-shadow: var(--shadow-card); margin-bottom: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    transition: all 0.2s;
+  }
+  .rx-card:hover { box-shadow: var(--shadow-hover); }
+  .rx-card .rx-info { flex: 1; }
+  .rx-card .rx-drug { font-size: 12px; color: var(--warm-700); margin-top: 4px; }
+  .rx-card .rx-status { text-align: right; }
+  .delivery-progress {
+    display: flex; align-items: center; gap: 4px; margin-top: 6px; font-size: 11px; color: var(--teal-700);
+  }
+  .delivery-progress .step { width: 8px; height: 8px; border-radius: 50%; background: var(--teal-500); }
+  .delivery-progress .step.future { background: var(--warm-200); }
+  .delivery-progress .line { width: 20px; height: 1px; background: var(--warm-200); }
+
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .stat-card { animation: fadeIn 0.4s ease-out both; }
+  .stat-card:nth-child(1) { animation-delay: 0s; }
+  .stat-card:nth-child(2) { animation-delay: 0.05s; }
+  .stat-card:nth-child(3) { animation-delay: 0.1s; }
+  .stat-card:nth-child(4) { animation-delay: 0.15s; }
+
+  .role-panel { display: none; }
+  .role-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">Rx<span>Flow</span></div>
+  <nav id="sidebarNav"></nav>
+  <div class="sidebar-user" id="sidebarUser">
+    <div class="avatar" id="sidebarAvatar">李</div>
+    <div>
+      <div class="name" id="sidebarName">李助理</div>
+      <div class="role" id="sidebarRole">医生助理</div>
+    </div>
+  </div>
+</aside>
+
+<div class="main">
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">工作台</h1>
+    </div>
+    <div class="notif-bell">🔔<div class="badge"></div></div>
+  </header>
+
+  <div class="content">
+    <!-- Role Tabs -->
+    <div class="role-tabs">
+      <div class="role-tab active" onclick="switchRole('assistant', this)">👨‍💼 医生助理</div>
+      <div class="role-tab" onclick="switchRole('doctor', this)">👨‍⚕️ 医生</div>
+      <div class="role-tab" onclick="switchRole('courier', this)">📦 快递员</div>
+      <div class="role-tab" onclick="switchRole('patient', this)">🏥 患者</div>
+    </div>
+
+    <!-- ASSISTANT VIEW -->
+    <div class="role-panel active" id="panel-assistant">
+      <h3 class="section-title">今日概览</h3>
+      <div class="stat-grid col4">
+        <div class="stat-card draft"><div class="number">3</div><div class="label">草稿 · 待完成</div></div>
+        <div class="stat-card pending"><div class="number">7</div><div class="label">待审核 · 已提交</div></div>
+        <div class="stat-card rejected"><div class="number">2</div><div class="label">已驳回 · 需处理</div></div>
+        <div class="stat-card approved"><div class="number">15</div><div class="label">今日通过 · 已配送</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card-panel">
+          <h4><span class="dot"></span> 待处理驳回</h4>
+          <div class="mini-list">
+            <div class="mini-item">
+              <span class="patient">赵建国</span>
+              <span class="diagnosis">高血压病 2 级，规律服药...</span>
+              <span class="status-badge rejected">已驳回</span>
+              <span class="time-ago">10分钟前</span>
+            </div>
+            <div class="mini-item">
+              <span class="patient">李奶奶</span>
+              <span class="diagnosis">2型糖尿病，血糖控制不佳...</span>
+              <span class="status-badge rejected">已驳回</span>
+              <span class="time-ago">1小时前</span>
+            </div>
+          </div>
+          <a class="view-all" href="#">查看全部 →</a>
+        </div>
+        <div class="card-panel">
+          <h4>最近动态</h4>
+          <div class="activity-item"><div class="activity-dot approved"></div><div class="activity-text"><strong>张医生</strong> 审核通过了 <strong>赵建国</strong> 的处方</div></div>
+          <div class="activity-item"><div class="activity-dot submitted"></div><div class="activity-text">你提交了 <strong>王小明</strong> 的处方审核</div></div>
+          <div class="activity-item"><div class="activity-dot rejected"></div><div class="activity-text"><strong>张医生</strong> 驳回了 <strong>李奶奶</strong> 的处方 · 剂量错误</div></div>
+          <div class="activity-item"><div class="activity-dot delivered"></div><div class="activity-text"><strong>王师傅</strong> 已签收 <strong>陈建国</strong> 的配送</div></div>
+          <a class="view-all" href="#">查看全部 →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- DOCTOR VIEW -->
+    <div class="role-panel" id="panel-doctor">
+      <h3 class="section-title">审核概览</h3>
+      <div class="stat-grid col4">
+        <div class="stat-card pending"><div class="number">7</div><div class="label">待审核处方</div></div>
+        <div class="stat-card urgent"><div class="number">2</div><div class="label">超时未审 · &gt;24h</div></div>
+        <div class="stat-card approved"><div class="number">12</div><div class="label">今日已审核</div></div>
+        <div class="stat-card rejected"><div class="number">3</div><div class="label">今日驳回</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card-panel">
+          <h4><span class="dot" style="background:#ef4444;"></span> 待审核队列 · 按等待时长排序</h4>
+          <div class="mini-list">
+            <div class="mini-item">
+              <span class="patient">孙大爷</span>
+              <span class="diagnosis">慢性阻塞性肺疾病，稳定期...</span>
+              <span class="status-badge urgent">等待 26h</span>
+              <span class="time-ago">危险</span>
+            </div>
+            <div class="mini-item">
+              <span class="patient">周阿姨</span>
+              <span class="diagnosis">骨质疏松症，腰椎术后...</span>
+              <span class="status-badge pending">等待 10h</span>
+              <span class="time-ago">今天</span>
+            </div>
+            <div class="mini-item">
+              <span class="patient">赵建国</span>
+              <span class="diagnosis">高血压病 2 级，规律服药...</span>
+              <span class="status-badge resubmit">重提交</span>
+              <span class="time-ago">5分钟前</span>
+            </div>
+            <div class="mini-item">
+              <span class="patient">李奶奶</span>
+              <span class="diagnosis">2型糖尿病，血糖控制不佳...</span>
+              <span class="status-badge resubmit">重提交</span>
+              <span class="time-ago">1小时前</span>
+            </div>
+          </div>
+          <a class="view-all" href="#">查看全部 7 张待审处方 →</a>
+        </div>
+        <div class="card-panel">
+          <h4>最近审核记录</h4>
+          <div class="activity-item"><div class="activity-dot approved"></div><div class="activity-text">通过了 <strong>陈建国</strong> 的处方 · 冠心病用药</div></div>
+          <div class="activity-item"><div class="activity-dot rejected"></div><div class="activity-text">驳回了 <strong>李奶奶</strong> 的处方 · 剂量与诊断不符</div></div>
+          <div class="activity-item"><div class="activity-dot approved"></div><div class="activity-text">通过了 <strong>刘美丽</strong> 的处方 · 瑞舒伐他汀钙片</div></div>
+          <div class="activity-item"><div class="activity-dot approved"></div><div class="activity-text">通过了 <strong>赵建国</strong> 的处方 · 高血压药</div></div>
+          <a class="view-all" href="#">查看全部 →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- COURIER VIEW -->
+    <div class="role-panel" id="panel-courier">
+      <h3 class="section-title">配送概览</h3>
+      <div class="stat-grid col4">
+        <div class="stat-card pending"><div class="number">3</div><div class="label">待取件</div></div>
+        <div class="stat-card delivering"><div class="number">2</div><div class="label">配送中</div></div>
+        <div class="stat-card received"><div class="number">15</div><div class="label">今日已签收</div></div>
+        <div class="stat-card urgent"><div class="number">1</div><div class="label">异常退回</div></div>
+      </div>
+      <div class="two-col">
+        <div class="card-panel">
+          <h4><span class="dot" style="background:#3b82f6;"></span> 今日配送任务</h4>
+          <div class="mini-list">
+            <div class="mini-item">
+              <span class="patient">赵建国</span>
+              <span class="diagnosis">望京西园三区 401-5-302</span>
+              <span class="status-badge pending">待取件</span>
+              <span class="time-ago">新任务</span>
+            </div>
+            <div class="mini-item">
+              <span class="patient">王小明</span>
+              <span class="diagnosis">中关村南大街 12号 3层</span>
+              <span class="status-badge pending">待取件</span>
+              <span class="time-ago">新任务</span>
+            </div>
+            <div class="mini-item">
+              <span class="patient">陈建国</span>
+              <span class="diagnosis">方庄芳古园一区 23-1201</span>
+              <span class="status-badge delivering">配送中</span>
+              <span class="time-ago">预计12:00</span>
+            </div>
+          </div>
+          <a class="view-all" href="#">查看全部 →</a>
+        </div>
+        <div class="card-panel">
+          <h4>⚠ 待处理异常</h4>
+          <div class="mini-list">
+            <div class="mini-item">
+              <span class="patient">孙大爷</span>
+              <span class="diagnosis">电话无人接听，已尝试3次</span>
+              <span class="status-badge rejected">异常</span>
+              <span class="time-ago">昨天14:30</span>
+            </div>
+          </div>
+          <a class="view-all" href="#">查看全部 →</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- PATIENT VIEW -->
+    <div class="role-panel" id="panel-patient">
+      <h3 class="section-title">我的处方</h3>
+      <div class="stat-grid col3" style="margin-bottom:24px;">
+        <div class="stat-card delivering"><div class="number">1</div><div class="label">配送中</div></div>
+        <div class="stat-card approved"><div class="number">2</div><div class="label">待配送</div></div>
+        <div class="stat-card received"><div class="number">8</div><div class="label">历史处方</div></div>
+      </div>
+
+      <h3 class="section-title" style="font-size:14px;font-weight:600;">配送中</h3>
+      <div class="rx-card" style="border-left:3px solid #3b82f6;">
+        <div class="rx-info">
+          <div style="font-weight:600;font-size:14px;">PRS-20260602-0012</div>
+          <div class="rx-drug">阿司匹林肠溶片 + 阿托伐他汀钙片 + 美托洛尔缓释片 + 单硝酸异山梨酯片 · 共 4 种</div>
+          <div class="delivery-progress">
+            <span class="step"></span><span class="line"></span>
+            <span class="step"></span><span class="line"></span>
+            <span class="step"></span><span class="line"></span>
+            <span class="step future"></span>
+            <span style="margin-left:8px;">快递员王师傅已取件 · 预计今天 12:00 送达</span>
+          </div>
+        </div>
+        <div class="rx-status">
+          <span class="status-badge delivering">配送中</span>
+          <div style="font-size:11px;color:var(--teal-700);margin-top:8px;cursor:pointer;">追踪配送 →</div>
+        </div>
+      </div>
+
+      <h3 class="section-title" style="font-size:14px;font-weight:600;margin-top:24px;">待配送</h3>
+      <div class="rx-card" style="border-left:3px solid var(--teal-500);">
+        <div class="rx-info">
+          <div style="font-weight:600;font-size:14px;">PRS-20260603-0005</div>
+          <div class="rx-drug">硝苯地平控释片 30mg + 厄贝沙坦片 150mg · 共 2 种</div>
+          <div style="font-size:11px;color:var(--warm-700);margin-top:4px;">诊断：高血压病 2 级 · 张医生已审核通过</div>
+        </div>
+        <div class="rx-status">
+          <span class="status-badge approved">已通过</span>
+          <div style="font-size:11px;color:var(--warm-300);margin-top:8px;">等待快递员取件</div>
+        </div>
+      </div>
+      <div class="rx-card" style="border-left:3px solid var(--teal-500);">
+        <div class="rx-info">
+          <div style="font-weight:600;font-size:14px;">PRS-20260603-0008</div>
+          <div class="rx-drug">盐酸二甲双胍片 500mg · 共 1 种</div>
+          <div style="font-size:11px;color:var(--warm-700);margin-top:4px;">诊断：2型糖尿病 · 张医生已审核通过</div>
+        </div>
+        <div class="rx-status">
+          <span class="status-badge approved">已通过</span>
+          <div style="font-size:11px;color:var(--warm-300);margin-top:8px;">等待快递员取件</div>
+        </div>
+      </div>
+
+      <a class="view-all" href="#" style="margin-top:16px;">查看历史处方（8张）→</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const roleMenus = {
+  assistant: {
+    user: { name: '李助理', role: '医生助理', avatar: '李' },
+    menu: [
+      { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: true }] },
+      { section: '业务管理', items: [
+        { icon: '◈', label: '处方管理', href: 'prescription-list-mockup.html', active: false },
+        { icon: '◈', label: '新建处方', href: 'prescription-form-mockup.html', active: false },
+        { icon: '◈', label: '患者管理', href: 'patient-list-mockup.html', active: false }
+      ]},
+      { section: '其他', items: [
+        { icon: '◈', label: '配送管理', href: 'delivery-mockup.html', active: false },
+        { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+      ]}
+    ]
+  },
+  doctor: {
+    user: { name: '张医生', role: '主治医师', avatar: '张' },
+    menu: [
+      { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: true }] },
+      { section: '业务管理', items: [
+        { icon: '◈', label: '处方审核', href: 'prescription-list-mockup.html', active: false },
+        { icon: '◈', label: '患者管理', href: 'patient-list-mockup.html', active: false }
+      ]},
+      { section: '其他', items: [
+        { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+      ]}
+    ]
+  },
+  courier: {
+    user: { name: '王师傅', role: '快递员', avatar: '王' },
+    menu: [
+      { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: true }] },
+      { section: '业务管理', items: [
+        { icon: '◈', label: '配送管理', href: 'delivery-mockup.html', active: false }
+      ]},
+      { section: '其他', items: [
+        { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+      ]}
+    ]
+  },
+  patient: {
+    user: { name: '赵建国', role: '患者', avatar: '赵' },
+    menu: [
+      { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: true }] },
+      { section: '其他', items: [
+        { icon: '◈', label: '我的处方', href: 'patient-detail-mockup.html', active: false },
+        { icon: '◈', label: '配送追踪', href: 'patient-tracking-mockup.html', active: false },
+        { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+      ]}
+    ]
+  }
+};
+
+function renderSidebar(role) {
+  var cfg = roleMenus[role];
+  if (!cfg) return;
+  document.getElementById('sidebarName').textContent = cfg.user.name;
+  document.getElementById('sidebarRole').textContent = cfg.user.role;
+  document.getElementById('sidebarAvatar').textContent = cfg.user.avatar;
+  var nav = document.getElementById('sidebarNav');
+  nav.innerHTML = cfg.menu.map(function(section) {
+    var items = section.items.map(function(item) {
+      return '<a class="nav-item' + (item.active ? ' active' : '') + '" href="' + item.href + '">' + item.icon + ' ' + item.label + '</a>';
+    }).join('');
+    return '<div class="sidebar-section-title">' + section.section + '</div>' + items;
+  }).join('');
+}
+
+function switchRole(role, tab) {
+  document.querySelectorAll('.role-tab').forEach(function(t) { t.classList.remove('active'); });
+  tab.classList.add('active');
+  document.querySelectorAll('.role-panel').forEach(function(p) { p.classList.remove('active'); });
+  document.getElementById('panel-' + role).classList.add('active');
+  renderSidebar(role);
+}
+
+// Init sidebar with assistant role
+renderSidebar('assistant');
+</script>
+
+</body>
+</html>

@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RxFlow — 处方详情 · 审核</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-900: #134e4a; --teal-700: #0f766e; --teal-500: #14b8a6; --teal-100: #ccfbf1; --teal-50: #f0fdfa;
+    --coral: #f43f5e; --coral-50: #fff1f2; --amber: #f59e0b; --amber-50: #fffbeb;
+    --warm-50: #fafaf9; --warm-100: #f5f5f4; --warm-200: #e7e5e4; --warm-300: #d6d3d1; --warm-700: #44403c; --warm-900: #1c1917;
+    --green-50: #f0fdf4; --green-600: #16a34a; --blue-50: #eff6ff; --blue-600: #2563eb;
+    --indigo-50: #eef2ff;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: var(--warm-50); color: var(--warm-900);
+    display: flex; height: 100vh; overflow: hidden;
+  }
+
+  .sidebar {
+    width: 220px; background: linear-gradient(180deg, #0d5c56 0%, var(--teal-900) 100%);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .sidebar-brand {
+    padding: 20px 20px 32px; font-family: 'DM Serif Display', Georgia, serif;
+    font-size: 24px; color: #fff; letter-spacing: -0.3px;
+  }
+  .sidebar-brand span { color: var(--teal-500); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px; margin: 2px 8px;
+    border-radius: 8px; color: rgba(255,255,255,0.6); font-size: 13px; font-weight: 500; cursor: pointer;
+  }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nav-item.active { color: #fff; background: rgba(255,255,255,0.12); font-weight: 600; }
+  .nav-item { transition: all 0.25s ease; }
+  .sidebar-section-title { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: rgba(255,255,255,0.3); }
+  .sidebar-user {
+    padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; gap: 10px; margin-top: auto;
+  }
+  .sidebar-user .avatar {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: var(--teal-700); color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px; font-weight: 600; flex-shrink: 0;
+  }
+  .sidebar-user .name { font-size: 13px; color: #fff; font-weight: 500; }
+  .sidebar-user .role { font-size: 10px; color: rgba(255,255,255,0.4); }
+
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .header {
+    height: 56px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between;
+    background: #fff; border-bottom: 1px solid var(--warm-200); flex-shrink: 0;
+  }
+  .page-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .header-actions { display: flex; align-items: center; gap: 8px; }
+  .btn {
+    padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all 0.15s;
+  }
+  .btn-primary { background: var(--teal-700); color: #fff; }
+  .btn-primary:hover { background: var(--teal-900); }
+  .btn-danger { background: var(--coral); color: #fff; }
+  .btn-danger:hover { background: #e11d48; }
+  .btn-outline { background: #fff; color: var(--warm-700); border: 1.5px solid var(--warm-200); }
+  .btn-outline:hover { border-color: var(--warm-300); }
+  .btn-sm { padding: 5px 12px; font-size: 11px; border-radius: 6px; }
+
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+
+  .card {
+    background: #fff; border-radius: 12px; padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    margin-bottom: 20px;
+  }
+  .card h3 {
+    font-family: 'DM Serif Display', Georgia, serif; font-size: 16px;
+    margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--warm-100);
+  }
+  .badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-family: 'DM Sans', sans-serif; font-weight: 600; margin-left: 8px; vertical-align: middle;
+  }
+  .badge.pending { background: var(--amber-50); color: #92400e; }
+  .badge.rejected { background: var(--coral-50); color: #be123c; }
+  .badge.approved { background: var(--teal-100); color: var(--teal-700); }
+
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 24px; }
+  .info-item .key { font-size: 11px; color: var(--warm-700); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .info-item .val { font-size: 14px; font-weight: 500; }
+  .allergy-warn { color: var(--coral); font-weight: 600; }
+
+  .drug-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .drug-table th {
+    text-align: left; padding: 8px 12px; font-size: 10px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--warm-700); background: var(--warm-50);
+    border-bottom: 2px solid var(--warm-200);
+  }
+  .drug-table td { padding: 10px 12px; border-bottom: 1px solid var(--warm-100); }
+  .drug-table tr:last-child td { border-bottom: none; }
+  .drug-table .drug-name { font-weight: 600; }
+  .drug-table .spec { color: var(--warm-700); font-size: 12px; }
+
+  /* Timeline */
+  .timeline { position: relative; padding-left: 24px; }
+  .timeline::before {
+    content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px;
+    width: 2px; background: var(--warm-200);
+  }
+  .tl-item { position: relative; padding-bottom: 20px; }
+  .tl-item:last-child { padding-bottom: 0; }
+  .tl-dot {
+    position: absolute; left: -21px; top: 3px;
+    width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--warm-300); background: #fff;
+  }
+  .tl-dot.active { border-color: var(--teal-500); background: var(--teal-500); }
+  .tl-dot.rejected { border-color: var(--coral); background: var(--coral); }
+  .tl-title { font-size: 14px; font-weight: 600; }
+  .tl-desc { font-size: 12px; color: var(--warm-700); margin-top: 2px; }
+  .tl-time { font-size: 11px; color: var(--warm-300); margin-top: 2px; }
+  .tl-reason {
+    margin-top: 6px; padding: 8px 12px; background: var(--coral-50);
+    border-radius: 6px; font-size: 12px; color: #be123c; border-left: 3px solid var(--coral);
+  }
+
+  /* Side panel */
+  .patient-card .patient-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+  .patient-avatar {
+    width: 48px; height: 48px; border-radius: 12px;
+    background: linear-gradient(135deg, var(--teal-500), var(--teal-700));
+    color: #fff; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; font-weight: 600; flex-shrink: 0;
+  }
+  .patient-name { font-size: 16px; font-weight: 600; }
+  .patient-id { font-size: 11px; color: var(--warm-700); }
+
+  .review-panel textarea {
+    width: 100%; padding: 12px; border: 1.5px solid var(--warm-200); border-radius: 8px;
+    font-size: 13px; font-family: 'DM Sans', sans-serif; resize: vertical; min-height: 80px;
+    outline: none; transition: border-color 0.15s;
+  }
+  .review-panel textarea:focus { border-color: var(--teal-500); }
+  .template-chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+  .tpl-chip {
+    padding: 4px 10px; border-radius: 6px; font-size: 11px; cursor: pointer;
+    border: 1px solid var(--warm-200); background: #fff; transition: all 0.15s;
+  }
+  .tpl-chip:hover { border-color: var(--teal-500); background: var(--teal-100); }
+  .btn:disabled { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+
+  /* Role tabs */
+  .role-tabs { display: flex; gap: 4px; background: var(--warm-100); padding: 3px; border-radius: 10px; }
+  .role-tab {
+    padding: 6px 16px; border-radius: 8px; font-size: 12px; font-weight: 500; cursor: pointer;
+    color: var(--warm-700); transition: all 0.15s; white-space: nowrap; border: none; background: transparent;
+  }
+  .role-tab:hover { color: var(--teal-700); }
+  .role-tab.active { background: #fff; color: var(--teal-900); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+  /* Character counter */
+  .char-counter { font-size: 11px; color: var(--warm-700); margin-top: 6px; text-align: right; }
+  .char-counter.low { color: var(--coral); font-weight: 600; }
+
+  /* Revoke section */
+  .revoke-section { margin-top: 0; }
+  .revoke-timer { font-size: 20px; font-weight: 700; color: var(--teal-700); font-variant-numeric: tabular-nums; margin: 6px 0; }
+  .revoke-note { font-size: 11px; color: var(--warm-300); margin-top: 8px; line-height: 1.5; }
+
+  /* Inline annotation */
+  .annotate-link {
+    font-size: 11px; color: var(--teal-700); cursor: pointer; text-decoration: none;
+    margin-left: 8px; font-weight: 500; white-space: nowrap;
+  }
+  .annotate-link:hover { text-decoration: underline; }
+  .annotation-input-row {
+    display: none; padding: 8px 12px; background: var(--warm-50);
+  }
+  .annotation-input-row.show { display: table-row; }
+  .annotation-input-row input {
+    width: 100%; padding: 6px 10px; border: 1px solid var(--amber); border-radius: 6px;
+    font-size: 12px; font-family: 'DM Sans', sans-serif; outline: none;
+  }
+  .annotation-input-row input:focus { border-color: var(--teal-500); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.4); z-index: 100;
+    display: none; align-items: center; justify-content: center;
+  }
+  .modal-overlay.show { display: flex; }
+  .modal {
+    background: #fff; border-radius: 16px; width: 500px; max-height: 80vh; overflow-y: auto;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.2); animation: modalIn 0.25s ease-out;
+  }
+  .modal-header {
+    padding: 20px 24px; border-bottom: 1px solid var(--warm-100);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .modal-header h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 18px; }
+  .modal-close {
+    width: 32px; height: 32px; border-radius: 8px; border: none; background: var(--warm-100);
+    font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+  }
+  .modal-close:hover { background: var(--warm-200); }
+  .modal-body { padding: 24px; }
+  .modal-footer { padding: 16px 24px; border-top: 1px solid var(--warm-100); display: flex; gap: 8px; justify-content: flex-end; }
+
+  /* Diff comparison */
+  .diff-container { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .diff-panel {
+    border: 1.5px solid var(--warm-200); border-radius: 10px; overflow: hidden;
+  }
+  .diff-panel .diff-header {
+    padding: 10px 16px; font-size: 12px; font-weight: 600;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .diff-panel.old .diff-header { background: var(--coral-50); color: #be123c; }
+  .diff-panel.new .diff-header { background: var(--green-50); color: var(--green-600); }
+  .diff-body { padding: 14px 16px; font-size: 13px; }
+  .diff-body .drug-item { padding: 8px 0; border-bottom: 1px solid var(--warm-100); }
+  .diff-body .drug-item:last-child { border-bottom: none; }
+  .diff-highlight {
+    background: #dcfce7; padding: 2px 6px; border-radius: 3px;
+    font-weight: 600; color: var(--green-600);
+  }
+  .diff-old-val {
+    background: #ffe4e6; padding: 2px 6px; border-radius: 3px;
+    text-decoration: line-through; color: #be123c;
+  }
+  .diff-toggle { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; font-size: 12px; color: var(--warm-700); cursor: pointer; }
+
+  /* Delivery info */
+  .delivery-card-inner {
+    display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px;
+    background: var(--blue-50); border-radius: 10px; margin-bottom: 10px;
+  }
+  .delivery-card-inner .dl-icon {
+    width: 40px; height: 40px; border-radius: 10px; background: #dbeafe;
+    display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0;
+  }
+  .dl-meta { font-size: 12px; color: var(--warm-700); margin-top: 4px; }
+  .proof-thumb {
+    width: 80px; height: 80px; border-radius: 8px; background: var(--warm-100);
+    display: flex; align-items: center; justify-content: center; font-size: 24px;
+    border: 1px solid var(--warm-200); cursor: pointer; margin-top: 8px;
+  }
+
+  /* Annotation on drug row */
+  .drug-annotation {
+    margin-top: 6px; padding: 6px 10px; background: #fef9c3; border-radius: 4px;
+    font-size: 11px; color: #854d0e; display: flex; align-items: center; gap: 6px;
+  }
+
+  @keyframes slideIn { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
+  .card { animation: slideIn 0.4s ease-out both; }
+  .card:nth-child(2) { animation-delay: 0.05s; }
+  .card:nth-child(3) { animation-delay: 0.1s; }
+  .card:nth-child(4) { animation-delay: 0.15s; }
+
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(12px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">Rx<span>Flow</span></div>
+  <nav id="sidebarNav"></nav>
+  <div class="sidebar-user">
+    <div class="avatar" id="sidebarAvatar">张</div>
+    <div>
+      <div class="name" id="sidebarName">张医生</div>
+      <div class="role" id="sidebarRole">主治医师</div>
+    </div>
+  </div>
+</aside>
+
+<!-- Approval Confirmation Modal -->
+<div class="modal-overlay" id="approvalModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>确认审核通过</h3>
+      <button class="modal-close" onclick="closeApprovalModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">患者信息</div>
+        <div style="font-size:15px;font-weight:600;">赵建国 <span style="font-weight:400;color:var(--warm-700);font-size:13px;">男 · 62岁</span></div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">诊断摘要</div>
+        <div style="font-size:14px;line-height:1.5;">高血压病 2 级，规律服药，血压控制可</div>
+      </div>
+      <div style="margin-bottom:16px;">
+        <div style="font-size:11px;font-weight:600;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px;">处方药品</div>
+        <table style="width:100%;font-size:13px;border-collapse:collapse;">
+          <thead><tr style="color:var(--warm-700);font-size:11px;"><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--warm-200);">药品</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--warm-200);">规格</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid var(--warm-200);">用量</th></tr></thead>
+          <tbody>
+            <tr><td style="padding:6px 8px;font-weight:500;">硝苯地平控释片</td><td style="padding:6px 8px;">30mg × 7片</td><td style="padding:6px 8px;">1片 qd × 7天</td></tr>
+            <tr><td style="padding:6px 8px;font-weight:500;">厄贝沙坦片</td><td style="padding:6px 8px;">150mg × 7片</td><td style="padding:6px 8px;">1片 qd × 7天</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div style="padding:10px 14px;background:var(--teal-50);border-radius:8px;font-size:12px;color:var(--teal-700);">
+        ⚠ 青霉素过敏史 — 已确认所开药品无禁忌
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeApprovalModal()">取消</button>
+      <button class="btn btn-primary" onclick="confirmApproval()" style="background:var(--green-600);">确认通过</button>
+    </div>
+  </div>
+</div>
+
+<div class="main">
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title">处方详情</h1>
+      <span class="badge pending" id="headerBadge">待审核</span>
+    </div>
+    <div class="role-tabs" id="roleTabs">
+      <div class="role-tab active" onclick="switchRole('doctor')">👨‍⚕️ 医生审核</div>
+      <div class="role-tab" onclick="switchRole('assistant')">👩‍💼 助理重提</div>
+    </div>
+    <div class="header-actions" id="headerActions">
+      <button class="btn btn-outline">← 返回列表</button>
+      <button class="btn btn-danger" onclick="document.getElementById('reviewPanel').scrollIntoView({behavior:'smooth'})">驳回</button>
+      <button class="btn btn-primary" onclick="openApprovalModal()">✓ 审核通过</button>
+    </div>
+  </header>
+
+  <div class="content">
+    <div class="main-col">
+      <!-- Rx Info -->
+      <div class="card">
+        <h3>处方信息 <span class="badge pending">待审核</span></h3>
+        <div class="info-grid">
+          <div class="info-item"><div class="key">处方编号</div><div class="val">PRS-20260603-000001</div></div>
+          <div class="info-item"><div class="key">创建人</div><div class="val">李助理 · 医生助理</div></div>
+          <div class="info-item"><div class="key">创建时间</div><div class="val">2026-06-03 08:45</div></div>
+          <div class="info-item"><div class="key">当前状态</div><div class="val" style="color:#92400e;">● 等待医生审核</div></div>
+        </div>
+      </div>
+
+      <!-- Diagnosis & Drugs (with annotation) -->
+      <div class="card">
+        <h3>诊断与处方</h3>
+        <div style="margin-bottom:16px;">
+          <div class="key" style="font-size:11px;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">诊断描述</div>
+          <div style="font-size:15px;font-weight:500;">高血压病 2 级，规律服药，血压控制可</div>
+        </div>
+        <table class="drug-table">
+          <thead>
+            <tr><th>药品名称</th><th>规格</th><th>用量</th><th>频次</th><th>天数</th><th>备注</th></tr>
+          </thead>
+          <tbody>
+            <tr id="drugRow0">
+              <td class="drug-name">硝苯地平控释片 <a class="annotate-link" href="javascript:void(0)" onclick="toggleAnnotation('drugRow0')">✎ 添加批注</a></td>
+              <td class="spec">30mg × 7片</td>
+              <td>1片</td>
+              <td>qd</td>
+              <td>7天</td>
+              <td class="spec">晨起空腹</td>
+            </tr>
+            <tr class="annotation-input-row" id="annotationInput0">
+              <td colspan="6"><input type="text" placeholder="输入药品批注..." onkeypress="if(event.key==='Enter')saveAnnotation('drugRow0','annotationInput0',this.value)"></td>
+            </tr>
+            <tr id="drugRow1">
+              <td class="drug-name">厄贝沙坦片 <a class="annotate-link" onclick="toggleAnnotation('drugRow1')">✎ 添加批注</a></td>
+              <td class="spec">150mg × 7片</td>
+              <td>1片</td>
+              <td>qd</td>
+              <td>7天</td>
+              <td class="spec">—</td>
+            </tr>
+            <tr class="annotation-input-row" id="annotationInput1">
+              <td colspan="6"><input type="text" placeholder="输入药品批注..." onkeypress="if(event.key==='Enter')saveAnnotation('drugRow1','annotationInput1',this.value)"></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:16px;">
+          <div class="key" style="font-size:11px;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;">备注</div>
+          <div style="font-size:13px;color:var(--warm-700);">患者要求配送至望京西园地址。定期复诊患者，病情稳定。</div>
+        </div>
+      </div>
+
+      <!-- DIFF COMPARISON VIEW (for rejected resubmission) -->
+      <div class="card" id="diffSection">
+        <h3>修改对比 <span class="badge" style="background:var(--indigo-50);color:#4338ca;">驳回重提交</span></h3>
+        <div class="diff-toggle" onclick="document.getElementById('diffContainer').style.display=document.getElementById('diffContainer').style.display==='none'?'grid':'none'">
+          <span style="font-size:16px;">⇆</span> 仅看变更
+        </div>
+        <div class="diff-container" id="diffContainer">
+          <div class="diff-panel old">
+            <div class="diff-header">✕ 驳回处方 · 张医生 · 06-03 09:15</div>
+            <div class="diff-body">
+              <div style="font-weight:600;margin-bottom:8px;">诊断：高血压病 2 级</div>
+              <div class="drug-item">
+                <strong>硝苯地平控释片</strong><br>
+                <span class="diff-old-val">30mg × 14片</span> · 1片 · bid · <span class="diff-old-val">14天</span>
+                <div class="drug-annotation">⚠ 张医生：用量偏大，建议调整为 7 天</div>
+              </div>
+              <div class="drug-item">
+                <strong>厄贝沙坦片</strong><br>
+                150mg × 7片 · 1片 · qd · 7天
+              </div>
+            </div>
+          </div>
+          <div class="diff-panel new">
+            <div class="diff-header">✓ 修改后 · 李助理 · 06-03 09:30</div>
+            <div class="diff-body">
+              <div style="font-weight:600;margin-bottom:8px;">诊断：高血压病 2 级，规律服药，血压控制可</div>
+              <div class="drug-item">
+                <strong>硝苯地平控释片</strong><br>
+                <span class="diff-highlight">30mg × 7片</span> · 1片 · <span class="diff-highlight">qd</span> · <span class="diff-highlight">7天</span>
+              </div>
+              <div class="drug-item">
+                <strong>厄贝沙坦片</strong><br>
+                150mg × 7片 · 1片 · qd · 7天
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="tl-reason" style="margin-top:12px;">
+          <strong>驳回理由（严重）：</strong>硝苯地平控释片 14 天用量超出常规，建议调整为 7 天复查后再开。频次应为 qd 而非 bid。
+        </div>
+      </div>
+
+      <!-- DELIVERY INFO (visible after approved) -->
+      <div class="card" id="deliverySection">
+        <h3>配送信息 <span class="badge approved">配送中</span></h3>
+        <div class="delivery-card-inner">
+          <div class="dl-icon">📦</div>
+          <div>
+            <div style="font-weight:600;font-size:14px;">快递员：王师傅</div>
+            <div class="dl-meta">电话：139****5678 · 快递单号：SF1234567890</div>
+            <div class="dl-meta">取件时间：2026-06-03 10:30 · 预计送达：2026-06-03 12:00</div>
+          </div>
+        </div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px;">收件地址</div>
+        <div style="font-size:13px;color:var(--warm-700);margin-bottom:12px;">北京市朝阳区望京西园三区 401号楼 5单元 302</div>
+        <div style="font-size:13px;font-weight:500;margin-bottom:6px;">签收凭证</div>
+        <div class="proof-thumb" title="点击查看大图">📷</div>
+        <div style="font-size:11px;color:var(--warm-300);margin-top:4px;">2026-06-03 16:45 · 本人签收</div>
+      </div>
+
+      <!-- Timeline -->
+      <div class="card">
+        <h3>状态时间线</h3>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot active"></div>
+            <div class="tl-title">提交审核</div>
+            <div class="tl-desc">李助理将处方提交给张医生审核</div>
+            <div class="tl-time">2026-06-03 08:50</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot active"></div>
+            <div class="tl-title">处方创建</div>
+            <div class="tl-desc">李助理创建了该处方</div>
+            <div class="tl-time">2026-06-03 08:45</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div class="side-panel">
+      <div class="card patient-card">
+        <h3>患者信息</h3>
+        <div class="patient-header">
+          <div class="patient-avatar">赵</div>
+          <div>
+            <div class="patient-name">赵建国</div>
+            <div class="patient-id">男 · 62岁</div>
+          </div>
+        </div>
+        <div class="info-grid" style="grid-template-columns:1fr;">
+          <div class="info-item"><div class="key">手机号</div><div class="val">138****4444</div></div>
+          <div class="info-item"><div class="key">地址</div><div class="val">北京市朝阳区望京西园三区 401号楼 5单元 302</div></div>
+          <div class="info-item"><div class="key">过敏史</div><div class="val allergy-warn">⚠ 青霉素过敏</div></div>
+          <div class="info-item"><div class="key">既往处方</div><div class="val">3 张 · <a style="color:var(--teal-700);text-decoration:none;">查看全部</a></div></div>
+        </div>
+      </div>
+
+      <div class="card review-panel" id="reviewPanel">
+        <h3>审核操作</h3>
+        <div style="font-size:13px;color:var(--warm-700);margin-bottom:10px;">如驳回，请填写驳回理由（不少于 10 字）：</div>
+        <div class="template-chips">
+          <span class="tpl-chip">剂量错误</span>
+          <span class="tpl-chip">诊断与用药不符</span>
+          <span class="tpl-chip">药物禁忌</span>
+          <span class="tpl-chip">缺少检查结果</span>
+          <span class="tpl-chip">患者信息不全</span>
+        </div>
+        <label for="rejectReason" style="font-size:11px;font-weight:600;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;">驳回理由</label>
+        <textarea id="rejectReason" placeholder="请详细描述驳回原因..." oninput="updateCharCounter()"></textarea>
+        <div class="char-counter low" id="charCounter">已输入 0 字 / 最少 10 字</div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <label for="rejectType" style="font-size:11px;font-weight:600;color:var(--warm-700);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px;position:absolute;clip:rect(0,0,0,0);white-space:nowrap;">驳回类型</label>
+          <select id="rejectType" aria-label="驳回类型" style="flex:1;padding:8px;border:1.5px solid var(--warm-200);border-radius:8px;font-size:13px;font-family:'DM Sans',sans-serif;">
+            <option>驳回类型：一般</option>
+            <option>严重</option>
+            <option>建议</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;margin-top:12px;">
+          <button class="btn btn-danger" id="confirmRejectBtn" style="flex:1;" disabled>确认驳回</button>
+          <button class="btn btn-primary" style="flex:1;" onclick="openApprovalModal()">审核通过</button>
+        </div>
+      </div>
+
+      <!-- Revoke Approval Section -->
+      <div class="card revoke-section" id="revokeSection" style="display:none;">
+        <h3>撤回审核 <span class="badge approved">已通过</span></h3>
+        <div style="font-size:13px;color:var(--warm-700);margin-bottom:8px;">审核通过后可在 30 分钟内撤回</div>
+        <div class="revoke-timer">剩余 28:45 可撤回</div>
+        <button class="btn btn-outline" style="margin-top:12px;width:100%;color:var(--amber);border-color:var(--amber);">撤回审核</button>
+        <div class="revoke-note">审核通过后 30 分钟内可撤回，超时或已开始配送则无法撤回</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<script>
+// ===== Sidebar Role Config =====
+const roleMenus = {
+  assistant: {
+    user: { name: '李助理', role: '医生助理', avatar: '李' },
+    menu: [
+      { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: false }] },
+      { section: '业务管理', items: [
+        { icon: '◈', label: '处方管理', href: 'prescription-list-mockup.html', active: true },
+        { icon: '◈', label: '新建处方', href: 'prescription-form-mockup.html', active: false },
+        { icon: '◈', label: '患者管理', href: 'patient-list-mockup.html', active: false }
+      ]},
+      { section: '其他', items: [
+        { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+      ]}
+    ]
+  },
+  doctor: {
+    user: { name: '张医生', role: '主治医师', avatar: '张' },
+    menu: [
+      { section: '主菜单', items: [{ icon: '◈', label: '工作台', href: 'dashboard-mockup.html', active: false }] },
+      { section: '业务管理', items: [
+        { icon: '◈', label: '处方审核', href: 'prescription-list-mockup.html', active: true },
+        { icon: '◈', label: '患者管理', href: 'patient-list-mockup.html', active: false }
+      ]},
+      { section: '其他', items: [
+        { icon: '◈', label: '通知中心', href: 'notification-mockup.html', active: false }
+      ]}
+    ]
+  }
+};
+
+function renderSidebar(role) {
+  var cfg = roleMenus[role];
+  if (!cfg) return;
+  document.getElementById('sidebarName').textContent = cfg.user.name;
+  document.getElementById('sidebarRole').textContent = cfg.user.role;
+  document.getElementById('sidebarAvatar').textContent = cfg.user.avatar;
+  var nav = document.getElementById('sidebarNav');
+  nav.innerHTML = cfg.menu.map(function(section) {
+    var items = section.items.map(function(item) {
+      return '<a class="nav-item' + (item.active ? ' active' : '') + '" href="' + item.href + '">' + item.icon + ' ' + item.label + '</a>';
+    }).join('');
+    return '<div class="sidebar-section-title">' + section.section + '</div>' + items;
+  }).join('');
+}
+
+// ===== Role Switching =====
+function switchRole(role) {
+  const tabs = document.querySelectorAll('.role-tab');
+  const badge = document.getElementById('headerBadge');
+  const actions = document.getElementById('headerActions');
+  const reviewPanel = document.getElementById('reviewPanel');
+  const diffSection = document.getElementById('diffSection');
+  const revokeSection = document.getElementById('revokeSection');
+
+  tabs.forEach(t => t.classList.remove('active'));
+
+  if (role === 'doctor') {
+    tabs[0].classList.add('active');
+    badge.textContent = '待审核';
+    badge.className = 'badge pending';
+    actions.innerHTML = '<button class="btn btn-outline">← 返回列表</button>' +
+      '<button class="btn btn-danger" onclick="document.getElementById(\'reviewPanel\').scrollIntoView({behavior:\'smooth\'})">驳回</button>' +
+      '<button class="btn btn-primary" onclick="openApprovalModal()">✓ 审核通过</button>';
+    if (reviewPanel) reviewPanel.style.display = '';
+    if (diffSection) diffSection.style.display = '';
+    if (revokeSection) revokeSection.style.display = 'none';
+    document.getElementById('diffContainer').style.display = 'grid';
+    renderSidebar('doctor');
+  } else {
+    tabs[1].classList.add('active');
+    badge.textContent = '已驳回';
+    badge.className = 'badge rejected';
+    actions.innerHTML = '<button class="btn btn-outline">← 返回列表</button>' +
+      '<button class="btn btn-primary" onclick="submitResubmit()">修改并重提</button>';
+    if (reviewPanel) reviewPanel.style.display = 'none';
+    if (diffSection) diffSection.style.display = '';
+    if (revokeSection) revokeSection.style.display = 'none';
+    document.getElementById('diffContainer').style.display = 'grid';
+    renderSidebar('assistant');
+  }
+}
+
+// Init sidebar with doctor role (default)
+renderSidebar('doctor');
+
+// ===== Approval Modal =====
+function openApprovalModal() {
+  document.getElementById('approvalModal').classList.add('show');
+}
+function closeApprovalModal() {
+  document.getElementById('approvalModal').classList.remove('show');
+}
+function confirmApproval() {
+  closeApprovalModal();
+  document.getElementById('headerBadge').textContent = '已通过';
+  document.getElementById('headerBadge').className = 'badge approved';
+  document.getElementById('headerActions').innerHTML = '<button class="btn btn-outline">← 返回列表</button>';
+  var rp = document.getElementById('reviewPanel');
+  if (rp) rp.style.display = 'none';
+  var rs = document.getElementById('revokeSection');
+  if (rs) rs.style.display = '';
+}
+
+// ===== Template Chip Click-to-Fill =====
+document.querySelectorAll('.tpl-chip').forEach(function(chip) {
+  chip.addEventListener('click', function() {
+    var textarea = document.getElementById('rejectReason');
+    var current = textarea.value.trim();
+    var chipText = this.textContent.trim();
+    if (current === '') {
+      textarea.value = chipText;
+    } else {
+      textarea.value = current + '；' + chipText;
+    }
+    updateCharCounter();
+  });
+});
+
+// ===== Character Counter =====
+function updateCharCounter() {
+  var textarea = document.getElementById('rejectReason');
+  var counter = document.getElementById('charCounter');
+  var btn = document.getElementById('confirmRejectBtn');
+  var len = textarea.value.replace(/\s/g, '').length;
+  counter.textContent = '已输入 ' + len + ' 字 / 最少 10 字';
+  if (len < 10) {
+    counter.classList.add('low');
+    if (btn) btn.disabled = true;
+  } else {
+    counter.classList.remove('low');
+    if (btn) btn.disabled = false;
+  }
+}
+
+// ===== Inline Drug Annotation =====
+function toggleAnnotation(rowId) {
+  var rowNum = rowId.replace('drugRow', '');
+  var inputRow = document.getElementById('annotationInput' + rowNum);
+  if (inputRow.classList.contains('show')) {
+    inputRow.classList.remove('show');
+  } else {
+    // Close any other open annotations
+    document.querySelectorAll('.annotation-input-row.show').forEach(function(r) {
+      r.classList.remove('show');
+    });
+    inputRow.classList.add('show');
+    var input = inputRow.querySelector('input');
+    if (input) input.focus();
+  }
+}
+
+function saveAnnotation(rowId, inputId, value) {
+  if (!value.trim()) return;
+  var inputRow = document.getElementById(inputId);
+  inputRow.classList.remove('show');
+
+  // Check if annotation bar already exists
+  var row = document.getElementById(rowId);
+  var nextRow = row.nextElementSibling;
+  if (nextRow && nextRow.classList.contains('drug-annotation-row')) {
+    nextRow.remove();
+  }
+
+  // Create annotation bar
+  var annotRow = document.createElement('tr');
+  annotRow.className = 'drug-annotation-row';
+  annotRow.innerHTML = '<td colspan="6"><div class="drug-annotation">💬 批注：' + value + '</div></td>';
+  row.parentNode.insertBefore(annotRow, row.nextElementSibling);
+
+  // Clear input
+  document.getElementById(inputId).querySelector('input').value = '';
+}
+
+// ===== Assistant Resubmit =====
+function submitResubmit() {
+  alert('处方修改后已重新提交审核。');
+}
+</script>
+
+</body>
+</html>
