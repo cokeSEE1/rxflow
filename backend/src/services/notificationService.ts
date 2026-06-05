@@ -4,6 +4,7 @@ const prisma = new PrismaClient()
 export async function listNotifications(userId: number, query: any) {
   const where: any = { userId }
   if (query.type) where.type = query.type
+  if (query.isRead !== undefined) where.isRead = query.isRead === 'true'
   const page = parseInt(query.page) || 1
   const pageSize = parseInt(query.pageSize) || 20
   const [data, total, unreadCount] = await Promise.all([

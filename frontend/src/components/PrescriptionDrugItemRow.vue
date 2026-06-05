@@ -5,7 +5,7 @@
       <el-button
         v-if="canDelete"
         type="danger"
-        link
+        plain
         size="small"
         @click="$emit('remove')"
       >
@@ -88,6 +88,7 @@
           :max="90"
           :step="1"
           controls-position="right"
+          style="width: 100%"
           @update:model-value="$emit('update:item', { ...$props.item, days: $event ?? 1 })"
         />
         <span
@@ -177,6 +178,9 @@ defineEmits<{
 
 .field-group-remark {
   grid-column: 6;
+  margin-left: 8px;
+  padding-left: 12px;
+  border-left: 1px solid var(--warm-200);
 }
 
 .field-label {

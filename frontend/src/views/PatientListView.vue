@@ -55,10 +55,13 @@
           width="100"
         />
         <el-table-column
-          prop="gender"
           label="性别"
           width="70"
-        />
+        >
+          <template #default="{ row }">
+            {{ genderLabel(row.gender) }}
+          </template>
+        </el-table-column>
         <el-table-column
           prop="age"
           label="年龄"
@@ -87,7 +90,7 @@
         </el-table-column>
         <el-table-column
           label="过敏史"
-          width="100"
+          width="150"
           align="center"
         >
           <template #default="{ row }">
@@ -338,6 +341,11 @@ function maskIdCard(idCard: string | undefined): string {
 
 function formatDate(date: string | Date): string {
   return new Date(date).toLocaleString()
+}
+
+function genderLabel(gender: string): string {
+  const map: Record<string, string> = { male: '男', female: '女', '男': '男', '女': '女' }
+  return map[gender] || gender || '-'
 }
 
 // --- Search ---

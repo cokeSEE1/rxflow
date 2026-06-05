@@ -40,6 +40,7 @@
           <el-select
             v-model="filters.status"
             placeholder="全部"
+            style="width: 160px"
             clearable
             @change="handleSearch"
           >

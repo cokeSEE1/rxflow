@@ -42,6 +42,7 @@
       <el-button
         type="warning"
         size="large"
+        class="action-btn"
         :disabled="revokeCountdown <= 0"
         @click="$emit('revoke')"
       >
@@ -66,6 +67,7 @@
             v-if="action.type === 'pickup'"
             type="primary"
             size="large"
+            class="action-btn"
             @click="$emit('pickup')"
           >
             确认取件
@@ -74,6 +76,7 @@
             v-if="action.type === 'deliver'"
             type="success"
             size="large"
+            class="action-btn"
             @click="$emit('showDeliver')"
           >
             确认签收
@@ -82,6 +85,7 @@
             v-if="action.type === 'exception'"
             type="danger"
             size="large"
+            class="action-btn"
             @click="$emit('showException')"
           >
             上报异常
@@ -90,6 +94,7 @@
             v-if="action.type === 'redeliver'"
             type="primary"
             size="large"
+            class="action-btn"
             @click="$emit('redeliver')"
           >
             重新配送

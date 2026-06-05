@@ -47,8 +47,7 @@
             患者信息
           </h2>
           <el-button
-            type="primary"
-            plain
+            type="default"
             size="small"
             @click="showPatientDrawer = true"
           >
@@ -190,8 +189,7 @@
             药品明细
           </h2>
           <el-button
-            type="primary"
-            plain
+            type="default"
             size="small"
             :disabled="form.items.length >= MAX_ITEMS"
             @click="addDrugItem"
