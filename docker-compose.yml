@@ -1,0 +1,58 @@
+version: "3.9"
+
+services:
+  # ============================
+  # MySQL 数据库
+  # ============================
+  mysql:
+    image: mysql:8.0
+    container_name: rxflow-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: rxflow
+      MYSQL_CHARSET: utf8mb4
+      MYSQL_COLLATION: utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ============================
+  # Express 后端
+  # ============================
+  backend:
+    build: ./backend
+    container_name: rxflow-backend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "mysql://root:root123456@mysql:3306/rxflow"
+      JWT_SECRET: "${JWT_SECRET:-rxflow-prod-secret-change-me}"
+      JWT_EXPIRES_IN: "${JWT_EXPIRES_IN:-2h}"
+      JWT_REFRESH_SECRET: "${JWT_REFRESH_SECRET:-rxflow-refresh-secret-change-me}"
+      JWT_REFRESH_EXPIRES_IN: "${JWT_REFRESH_EXPIRES_IN:-7d}"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  # ============================
+  # Nginx + 前端静态资源
+  # ============================
+  frontend:
+    build: ./frontend
+    container_name: rxflow-frontend
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+
+volumes:
+  mysql_data:
