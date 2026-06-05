@@ -3,8 +3,13 @@
     <!-- Page Header -->
     <div class="page-header">
       <div class="header-left">
-        <h2 class="page-title">通知中心</h2>
-        <span v-if="store.unreadCount" class="unread-badge">{{ store.unreadCount }} 条未读</span>
+        <h2 class="page-title">
+          通知中心
+        </h2>
+        <span
+          v-if="store.unreadCount"
+          class="unread-badge"
+        >{{ store.unreadCount }} 条未读</span>
       </div>
       <el-button
         type="primary"
@@ -22,17 +27,27 @@
         size="default"
         @change="handleFilterChange"
       >
-        <el-radio-button value="all">全部</el-radio-button>
+        <el-radio-button value="all">
+          全部
+        </el-radio-button>
         <el-radio-button value="unread">
           未读
-          <span v-if="store.unreadCount" class="tab-count">({{ store.unreadCount }})</span>
+          <span
+            v-if="store.unreadCount"
+            class="tab-count"
+          >({{ store.unreadCount }})</span>
         </el-radio-button>
-        <el-radio-button value="read">已读</el-radio-button>
+        <el-radio-button value="read">
+          已读
+        </el-radio-button>
       </el-radio-group>
     </div>
 
     <!-- Notification List -->
-    <div v-if="store.list.length" class="notification-list">
+    <div
+      v-if="store.list.length"
+      class="notification-list"
+    >
       <div
         v-for="item in store.list"
         :key="item.id"
@@ -46,16 +61,26 @@
 
         <!-- Content -->
         <div class="item-body">
-          <div class="item-title" :class="{ bold: !item.isRead }">
+          <div
+            class="item-title"
+            :class="{ bold: !item.isRead }"
+          >
             {{ item.title }}
           </div>
-          <div class="item-content">{{ item.content }}</div>
-          <div class="item-time">{{ relativeTime(item.createdAt) }}</div>
+          <div class="item-content">
+            {{ item.content }}
+          </div>
+          <div class="item-time">
+            {{ relativeTime(item.createdAt) }}
+          </div>
         </div>
 
         <!-- Actions -->
         <div class="item-actions">
-          <span v-if="!item.isRead" class="unread-dot" />
+          <span
+            v-if="!item.isRead"
+            class="unread-dot"
+          />
           <el-button
             v-if="!item.isRead"
             text
@@ -70,7 +95,10 @@
     </div>
 
     <!-- Empty State -->
-    <el-empty v-else :description="emptyDescription" />
+    <el-empty
+      v-else
+      :description="emptyDescription"
+    />
   </div>
 </template>
 
@@ -79,6 +107,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useNotificationStore } from '@/stores/notification'
+import type { Notification } from '@/types'
 
 const router = useRouter()
 const store = useNotificationStore()
@@ -155,7 +184,7 @@ function handleFilterChange() {
   }
 }
 
-async function handleMarkOne(item: any) {
+async function handleMarkOne(item: Notification) {
   await store.markRead(item.id)
   ElMessage.success('已标为已读')
   if (activeFilter.value === 'unread') {
@@ -170,7 +199,7 @@ async function handleMarkAll() {
   ElMessage.success('全部标为已读')
 }
 
-function handleItemClick(item: any) {
+function handleItemClick(item: Notification) {
   if (!item.isRead) {
     store.markRead(item.id)
   }
@@ -184,7 +213,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .notification-center {
   max-width: 1000px;
 }

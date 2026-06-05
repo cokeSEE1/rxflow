@@ -2,14 +2,21 @@
   <div class="page">
     <div class="page-header">
       <h2>处方管理</h2>
-      <el-button v-permission="['assistant']" type="primary" @click="$router.push('/prescriptions/new')">
+      <el-button
+        v-permission="['assistant']"
+        type="primary"
+        @click="$router.push('/prescriptions/new')"
+      >
         新建处方
       </el-button>
     </div>
 
     <el-card>
       <!-- Quick filter tabs -->
-      <div class="quick-filters" v-if="quickFilters.length > 0">
+      <div
+        v-if="quickFilters.length > 0"
+        class="quick-filters"
+      >
         <el-radio-group
           v-model="activeQuickFilter"
           size="small"
@@ -19,24 +26,59 @@
             v-for="qf in quickFilters"
             :key="qf.label"
             :value="qf.label"
-          >{{ qf.label }}</el-radio-button>
+          >
+            {{ qf.label }}
+          </el-radio-button>
         </el-radio-group>
       </div>
 
-      <el-form :inline="true" :model="filters">
+      <el-form
+        :inline="true"
+        :model="filters"
+      >
         <el-form-item label="状态">
-          <el-select v-model="filters.status" placeholder="全部" clearable @change="handleSearch">
-            <el-option label="草稿" value="draft" />
-            <el-option label="待审核" value="pending" />
-            <el-option label="已驳回" value="rejected" />
-            <el-option label="已通过" value="approved" />
-            <el-option label="配送中" value="delivering" />
-            <el-option label="已签收" value="received" />
-            <el-option label="异常退回" value="returned" />
+          <el-select
+            v-model="filters.status"
+            placeholder="全部"
+            clearable
+            @change="handleSearch"
+          >
+            <el-option
+              label="草稿"
+              value="draft"
+            />
+            <el-option
+              label="待审核"
+              value="pending"
+            />
+            <el-option
+              label="已驳回"
+              value="rejected"
+            />
+            <el-option
+              label="已通过"
+              value="approved"
+            />
+            <el-option
+              label="配送中"
+              value="delivering"
+            />
+            <el-option
+              label="已签收"
+              value="received"
+            />
+            <el-option
+              label="异常退回"
+              value="returned"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="患者">
-          <el-input v-model="filters.patientName" placeholder="患者姓名" clearable />
+          <el-input
+            v-model="filters.patientName"
+            placeholder="患者姓名"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="日期范围">
           <el-date-picker
@@ -50,26 +92,38 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            查询
+          </el-button>
+          <el-button @click="handleReset">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
       <!-- Batch action bar -->
-      <div class="batch-bar" v-if="selectedRows.length > 0">
+      <div
+        v-if="selectedRows.length > 0"
+        class="batch-bar"
+      >
         <span>已选择 {{ selectedRows.length }} 项</span>
         <el-button
           v-permission="['assistant']"
           type="primary"
           size="small"
-          @click="handleBatchSubmit"
           :loading="batchSubmitting"
-        >批量提交</el-button>
+          @click="handleBatchSubmit"
+        >
+          批量提交
+        </el-button>
       </div>
 
       <el-table
-        :data="prescriptionStore.list"
         v-loading="prescriptionStore.loading"
+        :data="prescriptionStore.list"
         stripe
         @selection-change="handleSelectionChange"
       >
@@ -77,54 +131,126 @@
           v-if="userStore.role === 'assistant'"
           type="selection"
           width="50"
-          :selectable="(row: any) => row.status === 'draft'"
+          :selectable="(row: Prescription) => row.status === 'draft'"
         />
-        <el-table-column prop="prescriptionNo" label="处方编号" width="180" />
-        <el-table-column label="患者" width="120">
-          <template #default="{ row }">{{ row.patient?.name }}</template>
-        </el-table-column>
-        <el-table-column label="电话" width="120">
-          <template #default="{ row }">{{ row.patient?.phone }}</template>
-        </el-table-column>
-        <el-table-column prop="diagnosis" label="诊断" show-overflow-tooltip />
-        <el-table-column label="药品数" width="80" align="center">
-          <template #default="{ row }">{{ row.items?.length || 0 }}</template>
-        </el-table-column>
-        <el-table-column label="状态" width="140">
+        <el-table-column
+          prop="prescriptionNo"
+          label="处方编号"
+          width="180"
+        />
+        <el-table-column
+          label="患者"
+          width="120"
+        >
           <template #default="{ row }">
-            <StatusTag :status="row.status" />
-            <el-tag v-if="row.isResubmit" type="warning" size="small" style="margin-left: 4px">重提</el-tag>
+            {{ row.patient?.name }}
           </template>
         </el-table-column>
-        <el-table-column label="等待时间" width="100" align="center">
+        <el-table-column
+          label="电话"
+          width="120"
+        >
+          <template #default="{ row }">
+            {{ row.patient?.phone }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="diagnosis"
+          label="诊断"
+          show-overflow-tooltip
+        />
+        <el-table-column
+          label="药品数"
+          width="80"
+          align="center"
+        >
+          <template #default="{ row }">
+            {{ row.items?.length || 0 }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="状态"
+          width="140"
+        >
+          <template #default="{ row }">
+            <StatusTag :status="row.status" />
+            <el-tag
+              v-if="row.isResubmit"
+              type="warning"
+              size="small"
+              style="margin-left: 4px"
+            >
+              重提
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="等待时间"
+          width="100"
+          align="center"
+        >
           <template #default="{ row }">
             <template v-if="hasWaitTime(row)">
-              <el-tag :type="waitTimeTag(row)" size="small">{{ waitTimeLabel(row) }}</el-tag>
+              <el-tag
+                :type="waitTimeTag(row)"
+                size="small"
+              >
+                {{ waitTimeLabel(row) }}
+              </el-tag>
             </template>
             <template v-else>
               <span class="text-muted">--</span>
             </template>
           </template>
         </el-table-column>
-        <el-table-column label="创建人" width="100">
-          <template #default="{ row }">{{ row.assistant?.name }}</template>
-        </el-table-column>
-        <el-table-column label="创建时间" width="160">
-          <template #default="{ row }">{{ new Date(row.createdAt).toLocaleString() }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="180" fixed="right">
+        <el-table-column
+          label="创建人"
+          width="100"
+        >
           <template #default="{ row }">
-            <el-button size="small" @click="$router.push(`/prescriptions/${row.id}`)">详情</el-button>
-            <el-button v-if="row.status === 'draft'" size="small" type="warning" @click="handleSubmit(row.id)">提交</el-button>
+            {{ row.assistant?.name }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="创建时间"
+          width="160"
+        >
+          <template #default="{ row }">
+            {{ new Date(row.createdAt).toLocaleString() }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="操作"
+          width="180"
+          fixed="right"
+        >
+          <template #default="{ row }">
+            <el-button
+              size="small"
+              @click="$router.push(`/prescriptions/${row.id}`)"
+            >
+              详情
+            </el-button>
+            <el-button
+              v-if="row.status === 'draft'"
+              size="small"
+              type="warning"
+              @click="handleSubmit(row.id)"
+            >
+              提交
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
 
       <el-pagination
-        v-model:current-page="page" v-model:page-size="pageSize"
-        :total="prescriptionStore.total" :page-sizes="[10, 20, 50]"
-        layout="total, sizes, prev, pager, next" @change="handleSearch"
+        v-model:current-page="page"
+        v-model:page-size="pageSize"
+        :total="prescriptionStore.total"
+        :page-sizes="[10, 20, 50]"
+        layout="total, sizes, prev, pager, next"
         style="margin-top:16px; justify-content:flex-end"
+        @change="handleSearch"
       />
     </el-card>
   </div>
@@ -136,6 +262,7 @@ import { usePrescriptionStore } from '@/stores/prescription'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import StatusTag from '@/components/StatusTag.vue'
+import type { Prescription } from '@/types'
 
 const prescriptionStore = usePrescriptionStore()
 const userStore = useUserStore()
@@ -149,7 +276,7 @@ const filters = reactive<{ status: string; patientName: string; dateFrom: string
 })
 
 const dateRange = ref<string[] | null>(null)
-const selectedRows = ref<any[]>([])
+const selectedRows = ref<Prescription[]>([])
 const batchSubmitting = ref(false)
 const activeQuickFilter = ref('')
 
@@ -182,7 +309,7 @@ const quickFilters = computed(() => {
 })
 
 function handleQuickFilter(label: string) {
-  const qf = quickFilters.value.find(q => q.label === label)
+  const qf = quickFilters.value.find((q) => q.label === label)
   if (!qf) return
 
   // Single-status filters pass through directly; compound filters
@@ -233,12 +360,12 @@ async function handleSubmit(id: number) {
 }
 
 // Batch operations
-function handleSelectionChange(rows: any[]) {
+function handleSelectionChange(rows: Prescription[]) {
   selectedRows.value = rows
 }
 
 async function handleBatchSubmit() {
-  const draftRows = selectedRows.value.filter(r => r.status === 'draft')
+  const draftRows = selectedRows.value.filter((r) => r.status === 'draft')
   if (draftRows.length === 0) {
     ElMessage.warning('请选择草稿状态的处方')
     return
@@ -268,17 +395,17 @@ async function handleBatchSubmit() {
 }
 
 // Wait time helpers
-function hasWaitTime(row: any): boolean {
+function hasWaitTime(row: Prescription): boolean {
   return (row.status === 'pending' || row.status === 'rejected') && !!row.submittedAt
 }
 
-function getWaitHours(row: any): number {
+function getWaitHours(row: Prescription): number {
   if (!row.submittedAt) return 0
   const diff = Date.now() - new Date(row.submittedAt).getTime()
   return Math.floor(diff / (1000 * 60 * 60))
 }
 
-function waitTimeLabel(row: any): string {
+function waitTimeLabel(row: Prescription): string {
   const hours = getWaitHours(row)
   if (hours < 1) return '刚刚'
   if (hours < 24) return `${hours}小时`
@@ -286,7 +413,7 @@ function waitTimeLabel(row: any): string {
   return `${days}天`
 }
 
-function waitTimeTag(row: any): string {
+function waitTimeTag(row: Prescription): string {
   const hours = getWaitHours(row)
   if (hours > 48) return 'danger'
   if (hours > 24) return 'warning'
@@ -299,7 +426,7 @@ onMounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .page { max-width: 1400px; }
 .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 

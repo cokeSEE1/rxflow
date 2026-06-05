@@ -16,6 +16,7 @@ model User {
   phone         String    @unique @db.VarChar(20)
   passwordHash  String    @db.VarChar(255)
   role          String    @db.VarChar(20)
+  department    String?   @db.VarChar(50)
   avatar        String?   @db.VarChar(500)
   isActive      Boolean   @default(true)
   lastLoginAt   DateTime?
@@ -28,6 +29,7 @@ model User {
   prescriptionsReviewed  Prescription[]  @relation("DoctorPrescriptions")
   prescriptionsDelivered Prescription[]  @relation("CourierDeliveries")
   notifiedById           Prescription[]  @relation("RejectedByDoctor")
+  prescriptionsDispensed Prescription[]  @relation("PharmacistDispensing")
   courierExceptions      DeliveryException[]
   rejectionTemplates     RejectionTemplate[]
   notifications          Notification[]
@@ -51,7 +53,8 @@ model Patient {
   updatedAt      DateTime  @updatedAt
   createdBy      Int?
 
-  prescriptions Prescription[]
+  prescriptions    Prescription[]
+  patientAllergies PatientAllergy[]
 
   @@index([phone])
   @@index([name])
@@ -69,6 +72,8 @@ model Prescription {
   assistant       User      @relation("AssistantPrescriptions", fields: [assistantId], references: [id])
   doctorId        Int?
   doctor          User?     @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
+  pharmacistId    Int?
+  pharmacist      User?     @relation("PharmacistDispensing", fields: [pharmacistId], references: [id])
   diagnosis       String    @db.Text
   status          String    @default("draft") @db.VarChar(20)
   rejectedReason  String?   @db.Text
@@ -81,11 +86,15 @@ model Prescription {
   deliveryProof   String?   @db.VarChar(500)
   deliveryMethod  String?   @db.VarChar(20)
   note            String?   @db.Text
+  contentSnapshot String?   @db.Text
+  expiresAt       DateTime?
 
   // ---- 状态时间戳（精确记录每一步发生时间） ----
   submittedAt    DateTime?
   approvedAt     DateTime?
   rejectedAt     DateTime?
+  dispensingAt   DateTime?
+  dispensedAt    DateTime?
   pickedUpAt     DateTime?
   deliveredAt    DateTime?
   returnedAt     DateTime?
@@ -108,12 +117,14 @@ model Prescription {
   timeline       PrescriptionTimeline[]
   smsVerifications SmsVerification[]
   deliveryExceptions DeliveryException[]
+  versions       PrescriptionVersion[]
 
   @@index([status])
   @@index([patientId])
   @@index([assistantId])
   @@index([doctorId])
   @@index([courierId])
+  @@index([pharmacistId])
   @@index([submittedAt])
   @@index([approvedAt])
 }
@@ -125,6 +136,8 @@ model PrescriptionItem {
   id                Int      @id @default(autoincrement())
   prescriptionId    Int
   prescription      Prescription @relation(fields: [prescriptionId], references: [id])
+  drugId            Int?
+  drug              Drug?    @relation(fields: [drugId], references: [id])
   drugName          String   @db.VarChar(200)
   specification     String   @db.VarChar(100)
   dosage            String   @db.VarChar(50)
@@ -132,8 +145,10 @@ model PrescriptionItem {
   days              Int
   remark            String?  @db.VarChar(500)
   doctorAnnotation  String?  @db.Text
+  pharmacistNote    String?  @db.VarChar(500)
 
   @@index([prescriptionId])
+  @@index([drugId])
 }
 
 // ============================================================
@@ -243,4 +258,185 @@ model RejectionTemplate {
   createdAt  DateTime @default(now())
 
   @@index([doctorId])
+}
+
+// ============================================================
+// Drug — 药品主数据
+// ============================================================
+model Drug {
+  id                Int      @id @default(autoincrement())
+  standardName      String   @db.VarChar(200)
+  genericName       String   @db.VarChar(200)
+  tradeName         String?  @db.VarChar(200)
+  specification     String   @db.VarChar(100)
+  manufacturer      String?  @db.VarChar(200)
+  approvalNumber    String?  @db.VarChar(100)
+  dosageForm        String   @db.VarChar(50)
+  insuranceCategory String   @default("self") @db.VarChar(10)
+  unit              String   @default("盒") @db.VarChar(20)
+  packageQuantity   Int      @default(1)
+  referencePrice    Decimal? @db.Decimal(10, 2)
+  pinyinInitial     String   @db.VarChar(50)
+  searchCode        String   @db.VarChar(200)
+  description       String?  @db.Text
+  isActive          Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  ingredients      DrugIngredient[]
+  contraindications DrugContraindication[]
+  interactionsA    DrugInteraction[]  @relation("InteractionDrugA")
+  interactionsB    DrugInteraction[]  @relation("InteractionDrugB")
+  items            PrescriptionItem[]
+  batches          DrugBatch[]
+
+  @@index([isActive])
+  @@index([insuranceCategory])
+  @@index([dosageForm])
+  @@index([pinyinInitial])
+  @@index([genericName])
+  @@unique([genericName, specification, manufacturer])
+}
+
+// ============================================================
+// DrugIngredient — 药品主要成分
+// ============================================================
+model DrugIngredient {
+  id         Int      @id @default(autoincrement())
+  drugId     Int
+  drug       Drug     @relation(fields: [drugId], references: [id], onDelete: Cascade)
+  allergenId Int
+  allergen   Allergen @relation(fields: [allergenId], references: [id])
+  amount     String?  @db.VarChar(50)
+
+  @@unique([drugId, allergenId])
+  @@index([allergenId])
+}
+
+// ============================================================
+// Allergen — 过敏原字典
+// ============================================================
+model Allergen {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  category    String   @db.VarChar(50)
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  drugs              DrugIngredient[]
+  patientAllergies   PatientAllergy[]
+
+  @@index([category])
+}
+
+// ============================================================
+// PatientAllergy — 患者-过敏原关联
+// ============================================================
+model PatientAllergy {
+  id         Int      @id @default(autoincrement())
+  patientId  Int
+  patient    Patient  @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  allergenId Int
+  allergen   Allergen @relation(fields: [allergenId], references: [id])
+  severity   String?  @db.VarChar(20)
+  remark     String?  @db.VarChar(500)
+  source     String   @default("manual") @db.VarChar(20)
+  createdAt  DateTime @default(now())
+
+  @@unique([patientId, allergenId])
+  @@index([patientId])
+}
+
+// ============================================================
+// DrugContraindication — 药品禁忌症
+// ============================================================
+model DrugContraindication {
+  id          Int     @id @default(autoincrement())
+  drugId      Int
+  drug        Drug    @relation(fields: [drugId], references: [id], onDelete: Cascade)
+  description String  @db.VarChar(500)
+
+  @@index([drugId])
+}
+
+// ============================================================
+// DrugInteraction — 药品相互作用
+// ============================================================
+model DrugInteraction {
+  id          Int     @id @default(autoincrement())
+  drugAId     Int
+  drugA       Drug    @relation("InteractionDrugA", fields: [drugAId], references: [id], onDelete: Cascade)
+  drugBId     Int
+  drugB       Drug    @relation("InteractionDrugB", fields: [drugBId], references: [id], onDelete: Cascade)
+  severity    String  @db.VarChar(20)
+  description String  @db.VarChar(500)
+
+  @@unique([drugAId, drugBId])
+  @@index([drugBId])
+}
+
+// ============================================================
+// DrugBatch — 药品批号与库存
+// ============================================================
+model DrugBatch {
+  id          Int      @id @default(autoincrement())
+  drugId      Int
+  drug        Drug     @relation(fields: [drugId], references: [id])
+  batchNo     String   @db.VarChar(50)
+  quantity    Int      @default(0)
+  unitPrice   Decimal? @db.Decimal(10, 2)
+  expireDate  DateTime
+  receivedAt  DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  @@unique([drugId, batchNo])
+  @@index([drugId])
+  @@index([expireDate])
+  @@index([quantity])
+}
+
+// ============================================================
+// AuditLog — 审计日志
+// ============================================================
+model AuditLog {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  userName     String   @db.VarChar(50)
+  userRole     String   @db.VarChar(20)
+  action       String   @db.VarChar(50)
+  resource     String   @db.VarChar(50)
+  resourceId   Int?
+  beforeState  String?  @db.VarChar(20)
+  afterState   String?  @db.VarChar(20)
+  diff         String?  @db.Text
+  result       String   @default("success") @db.VarChar(20)
+  ipAddress    String?  @db.VarChar(45)
+  requestId    String?  @db.VarChar(100)
+  contentHash  String?  @db.VarChar(64)
+  createdAt    DateTime @default(now())
+
+  @@index([userId])
+  @@index([resource, resourceId])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ============================================================
+// PrescriptionVersion — 处方版本快照
+// ============================================================
+model PrescriptionVersion {
+  id             Int      @id @default(autoincrement())
+  prescriptionId Int
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id])
+  version        Int
+  contentHash    String   @db.VarChar(64)
+  contentJson    String   @db.Text
+  createdBy      Int
+  createdByName  String   @db.VarChar(50)
+  reason         String?  @db.VarChar(100)
+  createdAt      DateTime @default(now())
+
+  @@unique([prescriptionId, version])
+  @@index([prescriptionId])
+  @@index([contentHash])
 }

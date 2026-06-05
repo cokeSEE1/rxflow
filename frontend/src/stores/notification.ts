@@ -1,11 +1,12 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as api from '@/api/notifications'
+import type { Notification, NotificationQuery } from '@/types'
 
 export const useNotificationStore = defineStore('notification', () => {
-  const list = ref<any[]>([])
+  const list = ref<Notification[]>([])
   const unreadCount = ref(0)
-  async function fetchList(query: any = {}) {
+  async function fetchList(query: NotificationQuery = {}) {
     const result = await api.listNotifications(query)
     list.value = result.data
     unreadCount.value = result.unreadCount

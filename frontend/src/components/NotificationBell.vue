@@ -1,6 +1,14 @@
 <template>
-  <el-badge :value="unreadCount" :hidden="unreadCount === 0" :max="99">
-    <el-icon :size="20" style="cursor:pointer" @click="$router.push('/notifications')">
+  <el-badge
+    :value="unreadCount"
+    :hidden="unreadCount === 0"
+    :max="99"
+  >
+    <el-icon
+      :size="20"
+      style="cursor:pointer"
+      @click="$router.push('/notifications')"
+    >
       <Bell />
     </el-icon>
   </el-badge>

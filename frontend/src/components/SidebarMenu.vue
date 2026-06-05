@@ -4,8 +4,14 @@
       Rx<span class="brand-accent">Flow</span>
     </div>
     <nav class="sidebar-nav">
-      <div v-for="section in menuItems" :key="section.title" class="nav-section-group">
-        <div class="nav-section-title">{{ section.title }}</div>
+      <div
+        v-for="section in menuItems"
+        :key="section.title"
+        class="nav-section-group"
+      >
+        <div class="nav-section-title">
+          {{ section.title }}
+        </div>
         <router-link
           v-for="item in section.items"
           :key="item.path"
@@ -18,10 +24,16 @@
       </div>
     </nav>
     <div class="sidebar-user">
-      <div class="user-avatar">{{ displayInitial }}</div>
+      <div class="user-avatar">
+        {{ displayInitial }}
+      </div>
       <div>
-        <div class="user-name">{{ userStore.user?.name || '用户' }}</div>
-        <div class="user-role">{{ roleLabel }}</div>
+        <div class="user-name">
+          {{ userStore.user?.name || '用户' }}
+        </div>
+        <div class="user-role">
+          {{ roleLabel }}
+        </div>
       </div>
     </div>
   </aside>
@@ -41,6 +53,7 @@ const roleLabels: Record<string, string> = {
   doctor: '医生',
   courier: '快递员',
   patient: '患者',
+  pharmacist: '药剂师',
 }
 
 const roleLabel = computed(() => roleLabels[userStore.role] || '未知角色')
@@ -55,7 +68,7 @@ const menuItems = computed(() => {
   if (!role) return []
 
   // Filter routes: sidebar visible + role authorized
-  const visible = router.getRoutes().filter(r => {
+  const visible = router.getRoutes().filter((r) => {
     if (r.meta.sidebar === false) return false
     if (!r.meta.title) return false
     const roles = r.meta.roles as string[] | undefined
@@ -78,7 +91,7 @@ const menuItems = computed(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .sidebar {
   width: 220px;
   min-height: 100vh;

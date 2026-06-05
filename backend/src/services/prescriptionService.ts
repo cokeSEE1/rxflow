@@ -1,12 +1,15 @@
 import { PrismaClient } from '@prisma/client'
+import { randomInt } from 'crypto'
 import { AppError } from '../middleware/errorHandler'
 import { generatePrescriptionNo } from '../utils/prescriptionNo'
+import { validatePhone } from '../utils/validate'
 
 const prisma = new PrismaClient()
 
 function getListFilter(role: string, userId: number, query: any) {
   const where: any = {}
   if (role === 'assistant') where.assistantId = userId
+  if (role === 'courier') where.courierId = userId
   if (query.status) where.status = { in: query.status.split(',') }
   if (query.patientName) where.patient = { name: { contains: query.patientName } }
   if (query.dateFrom || query.dateTo) {
@@ -19,6 +22,14 @@ function getListFilter(role: string, userId: number, query: any) {
 
 export async function listPrescriptions(role: string, userId: number, query: any) {
   const where = getListFilter(role, userId, query)
+  // Patient: find patient record by matching user phone, then filter by patientId
+  if (role === 'patient') {
+    const user = await prisma.user.findUnique({ where: { id: userId } })
+    if (!user) return { data: [], total: 0, page: 1, pageSize: 20 }
+    const patient = await prisma.patient.findFirst({ where: { phone: user.phone } })
+    if (!patient) return { data: [], total: 0, page: 1, pageSize: 20 }
+    where.patientId = patient.id
+  }
   const page = parseInt(query.page) || 1
   const pageSize = parseInt(query.pageSize) || 20
   const [data, total] = await Promise.all([
@@ -59,7 +70,74 @@ export async function getPrescription(id: number, role: string, userId: number) 
       throw new AppError(403, '无权限查看此处方')
     }
   }
+
+  // Enhance with allergy and interaction checks if items have drugIds
+  const drugIds = p.items.filter((i) => i.drugId).map((i) => i.drugId!)
+  if (drugIds.length > 0) {
+    const [allergyWarnings, interactionWarnings] = await Promise.all([
+      computeAllergyWarnings(p.patientId, drugIds),
+      computeInteractionWarnings(drugIds),
+    ])
+    return { ...p, allergyWarnings, interactionWarnings }
+  }
+
   return p
+}
+
+async function computeAllergyWarnings(patientId: number, drugIds: number[]) {
+  const [ingredients, patientAllergies] = await Promise.all([
+    prisma.drugIngredient.findMany({
+      where: { drugId: { in: drugIds } },
+      include: { drug: { select: { standardName: true } }, allergen: true },
+    }),
+    prisma.patientAllergy.findMany({
+      where: { patientId },
+      include: { allergen: true },
+    }),
+  ])
+
+  if (patientAllergies.length === 0) return []
+
+  const allergenSeverity = new Map<number, { severity: string; name: string }>()
+  for (const pa of patientAllergies) {
+    allergenSeverity.set(pa.allergenId, { severity: pa.severity || 'moderate', name: pa.allergen.name })
+  }
+
+  const warnings: { drugName: string; allergenName: string; severity: string }[] = []
+  for (const ing of ingredients) {
+    const allergy = allergenSeverity.get(ing.allergenId)
+    if (allergy) {
+      warnings.push({
+        drugName: ing.drug.standardName,
+        allergenName: allergy.name,
+        severity: allergy.severity,
+      })
+    }
+  }
+  return warnings
+}
+
+async function computeInteractionWarnings(drugIds: number[]) {
+  if (drugIds.length < 2) return []
+
+  const interactions = await prisma.drugInteraction.findMany({
+    where: {
+      OR: [
+        { drugAId: { in: drugIds }, drugBId: { in: drugIds } },
+      ],
+    },
+    include: {
+      drugA: { select: { standardName: true } },
+      drugB: { select: { standardName: true } },
+    },
+  })
+
+  return interactions.map((ix) => ({
+    drugAName: ix.drugA.standardName,
+    drugBName: ix.drugB.standardName,
+    severity: ix.severity,
+    description: ix.description,
+  }))
 }
 
 export async function createPrescription(data: {
@@ -87,7 +165,7 @@ export async function createPrescription(data: {
 export async function updateDraft(id: number, assistantId: number, data: any) {
   const p = await prisma.prescription.findUnique({ where: { id } })
   if (!p) throw new AppError(404, '处方不存在')
-  if (p.status !== 'draft') throw new AppError(400, '只能编辑草稿状态的处方')
+  if (p.status !== 'draft' && p.status !== 'rejected') throw new AppError(400, '只能编辑草稿或已驳回状态的处方')
   if (p.assistantId !== assistantId) throw new AppError(403, '只能编辑自己创建的处方')
   await prisma.prescriptionItem.deleteMany({ where: { prescriptionId: id } })
   return prisma.prescription.update({
@@ -306,12 +384,33 @@ export async function requestRedelivery(id: number, requestedBy: number, reason:
   })
 }
 
+const RATE_LIMIT_WINDOW_MS = 60 * 1000
+const RATE_LIMIT_MAX_COUNT = 3
+
+async function checkRateLimit(phone: string) {
+  const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_MS)
+  const count = await prisma.smsVerification.count({
+    where: {
+      phone,
+      createdAt: { gte: windowStart },
+    },
+  })
+  if (count >= RATE_LIMIT_MAX_COUNT) {
+    throw new AppError(429, '验证码发送过于频繁，请 60 秒后再试')
+  }
+}
+
 export async function generateSmsCode(prescriptionId: number, phone: string) {
   const p = await prisma.prescription.findUnique({ where: { id: prescriptionId } })
   if (!p) throw new AppError(404, '处方不存在')
   if (p.status !== 'delivering') throw new AppError(400, '当前状态不可生成验证码')
-  const code = String(Math.floor(100000 + Math.random() * 900000))
-  return prisma.smsVerification.create({
+
+  validatePhone(phone)
+  await checkRateLimit(phone)
+
+  const code = String(randomInt(100000, 999999))
+
+  const record = await prisma.smsVerification.create({
     data: {
       prescriptionId,
       phone,
@@ -319,9 +418,26 @@ export async function generateSmsCode(prescriptionId: number, phone: string) {
       expiresAt: new Date(Date.now() + 5 * 60 * 1000),
     },
   })
+
+  // 开发环境输出验证码到控制台方便测试
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[DEV] SMS code for ${phone}: ${code}`)
+  }
+
+  return {
+    success: true,
+    message: '验证码已发送',
+    expiresAt: record.expiresAt,
+  }
 }
 
 export async function verifySmsCode(prescriptionId: number, phone: string, code: string) {
+  validatePhone(phone)
+
+  if (!/^\d{6}$/.test(code)) {
+    throw new AppError(400, '验证码格式不正确')
+  }
+
   const record = await prisma.smsVerification.findFirst({
     where: { prescriptionId, phone, isVerified: false },
     orderBy: { createdAt: 'desc' },
@@ -347,9 +463,9 @@ export async function verifySmsCode(prescriptionId: number, phone: string, code:
   return { verified: true }
 }
 
-export async function getDeliveryExceptions(query: { isResolved?: boolean; type?: string }) {
+export async function getDeliveryExceptions(query: { isResolved?: string; type?: string }) {
   const where: any = {}
-  if (query.isResolved !== undefined) where.isResolved = query.isResolved
+  if (query.isResolved !== undefined) where.isResolved = query.isResolved === 'true'
   if (query.type) where.type = query.type
   return prisma.deliveryException.findMany({
     where,

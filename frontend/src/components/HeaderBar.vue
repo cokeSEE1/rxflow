@@ -1,14 +1,31 @@
 <template>
   <div class="header-bar">
     <div class="header-left">
-      <h1 class="logo">RxFlow</h1>
+      <h1 class="logo">
+        RxFlow
+      </h1>
       <span class="subtitle">处方配送管理平台</span>
     </div>
     <div class="header-right">
-      <div class="notification-wrapper" @click="$router.push('/notifications')">
-        <el-badge :value="notificationStore.unreadCount" class="notification-bell">
+      <div
+        class="notification-wrapper"
+        @click="$router.push('/notifications')"
+      >
+        <el-badge
+          :value="notificationStore.unreadCount"
+          class="notification-bell"
+        >
           <div class="bell-icon">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
@@ -18,12 +35,22 @@
       <el-dropdown trigger="click">
         <span class="user-info">
           <span class="user-name">{{ userStore.user?.name }}</span>
-          <el-tag size="small" :type="roleTagType">{{ roleLabel }}</el-tag>
+          <el-tag
+            size="small"
+            :type="roleTagType"
+          >{{ roleLabel }}</el-tag>
         </span>
         <template #dropdown>
           <el-dropdown-menu>
-            <el-dropdown-item @click="$router.push('/notifications')">通知中心</el-dropdown-item>
-            <el-dropdown-item divided @click="handleLogout">退出登录</el-dropdown-item>
+            <el-dropdown-item @click="$router.push('/notifications')">
+              通知中心
+            </el-dropdown-item>
+            <el-dropdown-item
+              divided
+              @click="handleLogout"
+            >
+              退出登录
+            </el-dropdown-item>
           </el-dropdown-menu>
         </template>
       </el-dropdown>
@@ -70,7 +97,7 @@ function handleLogout() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .header-bar {
   display: flex;
   align-items: center;

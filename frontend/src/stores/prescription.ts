@@ -1,14 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import * as api from '@/api/prescriptions'
+import type { PrescriptionQuery, Prescription, PrescriptionCreateParams, PrescriptionUpdateParams } from '@/types'
 
 export const usePrescriptionStore = defineStore('prescription', () => {
-  const list = ref<any[]>([])
-  const current = ref<any>(null)
+  const list = ref<Prescription[]>([])
+  const current = ref<Prescription | null>(null)
   const total = ref(0)
   const loading = ref(false)
 
-  async function fetchList(query: api.PrescriptionQuery = {}) {
+  async function fetchList(query: PrescriptionQuery = {}) {
     loading.value = true
     try {
       const result = await api.listPrescriptions(query)
@@ -23,11 +24,11 @@ export const usePrescriptionStore = defineStore('prescription', () => {
     return current.value
   }
 
-  async function create(data: any) {
+  async function create(data: PrescriptionCreateParams) {
     return api.createPrescription(data)
   }
 
-  async function update(id: number, data: any) {
+  async function update(id: number, data: PrescriptionUpdateParams) {
     return api.updateDraft(id, data)
   }
 
@@ -71,5 +72,10 @@ export const usePrescriptionStore = defineStore('prescription', () => {
     await fetchDetail(id)
   }
 
-  return { list, current, total, loading, fetchList, fetchDetail, create, update, remove, submit, approve, reject, revoke, pickup, deliver, reportEx }
+  async function requestRedeliver(id: number, reason: string) {
+    await api.requestRedelivery(id, reason)
+    await fetchDetail(id)
+  }
+
+  return { list, current, total, loading, fetchList, fetchDetail, create, update, remove, submit, approve, reject, revoke, pickup, deliver, reportEx, requestRedeliver }
 })

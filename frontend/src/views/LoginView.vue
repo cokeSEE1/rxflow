@@ -4,8 +4,12 @@
       <!-- Left: Brand Panel -->
       <div class="brand-panel">
         <div class="brand-content">
-          <h1 class="logo">Rx<span class="logo-accent">Flow</span></h1>
-          <p class="tagline">处方配送管理平台</p>
+          <h1 class="logo">
+            Rx<span class="logo-accent">Flow</span>
+          </h1>
+          <p class="tagline">
+            处方配送管理平台
+          </p>
           <ul class="features">
             <li>
               <span class="feature-icon">&#9671;</span>
@@ -21,13 +25,19 @@
             </li>
           </ul>
         </div>
-        <p class="copyright">RxFlow v1.0 &middot; Healthcare Logistics</p>
+        <p class="copyright">
+          RxFlow v1.0 &middot; Healthcare Logistics
+        </p>
       </div>
 
       <!-- Right: Form Panel -->
       <div class="form-panel">
-        <h2 class="form-title">欢迎回来</h2>
-        <p class="form-subtitle">选择角色并登录您的账号</p>
+        <h2 class="form-title">
+          欢迎回来
+        </h2>
+        <p class="form-subtitle">
+          选择角色并登录您的账号
+        </p>
 
         <!-- Role chips -->
         <div class="role-chips">
@@ -36,8 +46,8 @@
             :key="role.key"
             class="role-chip"
             :class="{ active: activeRole === role.key }"
-            @click="selectRole(role.key)"
             type="button"
+            @click="selectRole(role.key)"
           >
             {{ role.label }}
           </button>
@@ -48,8 +58,8 @@
           ref="formRef"
           :model="form"
           :rules="rules"
-          @submit.prevent="handleLogin"
           class="login-form"
+          @submit.prevent="handleLogin"
         >
           <el-form-item prop="phone">
             <el-input
@@ -79,8 +89,13 @@
         </el-form>
 
         <!-- Test accounts hint (hidden in production) -->
-        <div v-if="false" class="test-hint">
-          <p class="test-hint-title">测试账号（密码统一：123456）</p>
+        <div
+          v-if="false"
+          class="test-hint"
+        >
+          <p class="test-hint-title">
+            测试账号（密码统一：123456）
+          </p>
           <div class="test-hint-grid">
             <span>助理 13800001111</span>
             <span>医生 13800002222</span>
@@ -125,7 +140,7 @@ const rules = {
 
 function selectRole(key: string) {
   activeRole.value = key
-  const role = roles.find(r => r.key === key)
+  const role = roles.find((r) => r.key === key)
   if (role) form.phone = role.phone
 }
 
@@ -135,15 +150,15 @@ async function handleLogin() {
     await userStore.login(form.phone, form.password)
     ElMessage.success(`欢迎回来，${userStore.user?.name}`)
     router.push('/')
-  } catch (e: any) {
-    ElMessage.error(e.response?.data?.error || '登录失败')
+  } catch (e: unknown) {
+    ElMessage.error((e as { response?: { data?: { error?: string } } }).response?.data?.error || '登录失败')
   } finally {
     loading.value = false
   }
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 /* ========= CSS Variables ========= */
 .login-page {
   --teal-900: #134e4a;

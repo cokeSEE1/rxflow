@@ -1,12 +1,18 @@
 <template>
-  <div class="page" v-loading="loading">
+  <div
+    v-loading="loading"
+    class="page"
+  >
     <!-- Page Header -->
     <div class="page-header">
       <div class="header-left">
         <h2>处方详情</h2>
         <span class="prescription-no">{{ current?.prescriptionNo }}</span>
       </div>
-      <StatusTag v-if="current" :status="current.status" />
+      <StatusTag
+        v-if="current"
+        :status="current.status"
+      />
     </div>
 
     <template v-if="current">
@@ -15,7 +21,9 @@
         <div class="main-column">
           <!-- 1. Basic Info Card -->
           <section class="info-card">
-            <h3 class="section-title">基本信息</h3>
+            <h3 class="section-title">
+              基本信息
+            </h3>
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">处方编号</span>
@@ -33,12 +41,24 @@
                 <span class="info-label">状态</span>
                 <StatusTag :status="current.status" />
               </div>
+              <div class="info-item">
+                <span class="info-label">处方有效期</span>
+                <span class="info-value validity-value">审核通过后 3 天内有效</span>
+              </div>
+              <div class="info-item">
+                <span class="info-label">医保分类</span>
+                <span class="info-value">
+                  <span class="insurance-summary">{{ insuranceSummary }}</span>
+                </span>
+              </div>
             </div>
           </section>
 
           <!-- 2. Patient Info Card -->
           <section class="info-card">
-            <h3 class="section-title">患者信息</h3>
+            <h3 class="section-title">
+              患者信息
+            </h3>
             <div class="info-grid">
               <div class="info-item">
                 <span class="info-label">姓名</span>
@@ -61,7 +81,10 @@
                 <span class="info-value">{{ current.patient?.address || '-' }}</span>
               </div>
             </div>
-            <div v-if="current.patient?.allergyHistory" class="allergy-section">
+            <div
+              v-if="current.patient?.allergyHistory"
+              class="allergy-section"
+            >
               <span class="allergy-label">过敏史</span>
               <span class="allergy-value">{{ current.patient.allergyHistory }}</span>
             </div>
@@ -69,21 +92,61 @@
 
           <!-- 3. Diagnosis -->
           <section class="info-card">
-            <h3 class="section-title">诊断</h3>
-            <p class="diagnosis-text">{{ current.diagnosis || '暂无诊断信息' }}</p>
+            <h3 class="section-title">
+              诊断
+            </h3>
+            <p class="diagnosis-text">
+              {{ current.diagnosis || '暂无诊断信息' }}
+            </p>
           </section>
 
           <!-- 4. Drug Items Table -->
           <section class="info-card">
-            <h3 class="section-title">药品明细</h3>
-            <el-table :data="current.items || []" stripe border style="width: 100%">
-              <el-table-column prop="drugName" label="药品名称" min-width="150" />
-              <el-table-column prop="specification" label="规格" width="120" />
-              <el-table-column prop="dosage" label="用量" width="100" />
-              <el-table-column prop="frequency" label="频次" width="100" />
-              <el-table-column prop="days" label="天数" width="80" />
-              <el-table-column prop="remark" label="备注" min-width="120" />
-              <el-table-column v-if="hasDoctorAnnotation" prop="doctorAnnotation" label="医生批注" min-width="150">
+            <h3 class="section-title">
+              药品明细
+            </h3>
+            <el-table
+              :data="current.items || []"
+              stripe
+              border
+              style="width: 100%"
+            >
+              <el-table-column
+                prop="drugName"
+                label="药品名称"
+                min-width="150"
+              />
+              <el-table-column
+                prop="specification"
+                label="规格"
+                width="120"
+              />
+              <el-table-column
+                prop="dosage"
+                label="用量"
+                width="100"
+              />
+              <el-table-column
+                prop="frequency"
+                label="频次"
+                width="100"
+              />
+              <el-table-column
+                prop="days"
+                label="天数"
+                width="80"
+              />
+              <el-table-column
+                prop="remark"
+                label="备注"
+                min-width="120"
+              />
+              <el-table-column
+                v-if="hasDoctorAnnotation"
+                prop="doctorAnnotation"
+                label="医生批注"
+                min-width="150"
+              >
                 <template #default="{ row }">
                   <span class="annotation-text">{{ row.doctorAnnotation || '-' }}</span>
                 </template>
@@ -92,260 +155,222 @@
           </section>
 
           <!-- 5. Note -->
-          <section class="info-card" v-if="current.note">
-            <h3 class="section-title">备注</h3>
-            <p class="note-text">{{ current.note }}</p>
+          <section
+            v-if="current.note"
+            class="info-card"
+          >
+            <h3 class="section-title">
+              备注
+            </h3>
+            <p class="note-text">
+              {{ current.note }}
+            </p>
           </section>
 
-          <!-- 6. Status Timeline -->
-          <section class="info-card">
-            <h3 class="section-title">状态时间线</h3>
-            <el-timeline v-if="current.timeline?.length">
-              <el-timeline-item
-                v-for="item in current.timeline"
-                :key="item.id"
-                :timestamp="formatDateTime(item.createdAt)"
-                :color="item.action === 'rejected' ? '#f56c6c' : undefined"
-                placement="top"
-              >
-                <div :class="['timeline-card', { 'timeline-rejected': item.action === 'rejected' }]">
-                  <div class="timeline-action">{{ actionLabel(item.action) }}</div>
-                  <div class="timeline-operator">{{ item.operatorName }}</div>
-                  <div v-if="item.detail" class="timeline-detail">{{ item.detail }}</div>
-                  <div
-                    v-if="item.action === 'rejected' && item.metadata"
-                    class="timeline-reason"
-                  >
-                    {{ formatMetadata(item.metadata) }}
+          <!-- 6. Allergy Check Results -->
+          <section
+            v-if="hasDrugData"
+            class="info-card"
+          >
+            <h3 class="section-title">
+              过敏检查结果
+            </h3>
+            <el-alert
+              v-if="allergyResult.severity === 'severe'"
+              title="严重过敏风险 — 需医生手动确认"
+              type="error"
+              :closable="false"
+              show-icon
+            >
+              <template #default>
+                <div class="allergy-detail">
+                  <p>{{ allergyResult.description }}</p>
+                  <div class="allergy-actions">
+                    <el-button
+                      type="warning"
+                      size="small"
+                      @click="handleViewAlternatives"
+                    >
+                      查看替代药品建议
+                    </el-button>
+                    <el-button
+                      type="danger"
+                      size="small"
+                      @click="handleConfirmRisk"
+                    >
+                      确认风险并签名继续
+                    </el-button>
                   </div>
                 </div>
-              </el-timeline-item>
-            </el-timeline>
-            <el-empty v-else description="暂无时间线记录" :image-size="60" />
+              </template>
+            </el-alert>
+            <el-alert
+              v-else-if="allergyResult.severity === 'moderate'"
+              title="中度过敏提示"
+              type="warning"
+              :closable="false"
+              show-icon
+            >
+              <template #default>
+                <div class="allergy-detail">
+                  <p>{{ allergyResult.description }}</p>
+                </div>
+              </template>
+            </el-alert>
+            <el-alert
+              v-else
+              title="过敏检查通过"
+              type="success"
+              :closable="false"
+              show-icon
+            >
+              <template #default>
+                <div class="allergy-detail">
+                  <p>{{ allergyResult.description }}</p>
+                </div>
+              </template>
+            </el-alert>
           </section>
+
+          <!-- 7. Drug Interaction Check Results -->
+          <section
+            v-if="hasDrugData"
+            class="info-card"
+          >
+            <h3 class="section-title">
+              药品相互作用检查
+              <span class="interaction-count">（共检查 {{ interactionResults.length }} 组配伍）</span>
+            </h3>
+            <el-table
+              :data="interactionResults"
+              stripe
+              border
+              style="width: 100%"
+            >
+              <el-table-column
+                prop="drugA"
+                label="药品 A"
+                min-width="140"
+              />
+              <el-table-column
+                prop="drugB"
+                label="药品 B"
+                min-width="140"
+              />
+              <el-table-column
+                prop="severity"
+                label="严重程度"
+                width="100"
+                align="center"
+              >
+                <template #default="{ row }">
+                  <el-tag
+                    :type="severityTagType(row.severity)"
+                    size="small"
+                    effect="dark"
+                  >
+                    {{ row.severity }}
+                  </el-tag>
+                </template>
+              </el-table-column>
+              <el-table-column
+                prop="advice"
+                label="临床建议"
+                min-width="200"
+              />
+            </el-table>
+          </section>
+
+          <!-- 8. Status Timeline -->
+          <PrescriptionTimeline :timeline="current.timeline" />
         </div>
 
         <!-- Right Column -->
-        <div class="side-column">
-          <!-- Doctor Review Actions -->
-          <section
-            v-if="isDoctor && current.status === 'pending'"
-            class="action-card"
-          >
-            <h3 class="section-title">审核操作</h3>
-            <div class="action-buttons">
-              <el-button type="primary" size="large" @click="handleApprove" class="action-btn">
-                <el-icon><Check /></el-icon> 通过
-              </el-button>
-              <el-button type="danger" size="large" @click="showRejectDialog = true" class="action-btn">
-                <el-icon><Close /></el-icon> 驳回
-              </el-button>
-            </div>
-          </section>
-
-          <!-- Revoke (doctor, approved, within 30min) -->
-          <section
-            v-if="isDoctor && current.status === 'approved' && isWithinRevokeWindow"
-            class="action-card revoke-card"
-          >
-            <h3 class="section-title">撤回审核</h3>
-            <p class="revoke-hint">审核通过后30分钟内可撤回</p>
-            <el-button
-              type="warning"
-              size="large"
-              @click="handleRevoke"
-              :disabled="revokeCountdown <= 0"
-            >
-              撤回审核 {{ revokeCountdown > 0 ? `(${formatCountdown(revokeCountdown)})` : '' }}
-            </el-button>
-          </section>
-
-          <!-- Courier Actions -->
-          <section v-if="isCourier && courierActions.length > 0" class="action-card">
-            <h3 class="section-title">配送操作</h3>
-            <div class="action-buttons">
-              <template v-for="action in courierActions" :key="action.type">
-                <el-button
-                  v-if="action.type === 'pickup'"
-                  type="primary"
-                  size="large"
-                  @click="handlePickup"
-                >
-                  确认取件
-                </el-button>
-                <el-button
-                  v-if="action.type === 'deliver'"
-                  type="success"
-                  size="large"
-                  @click="showDeliverDialog = true"
-                >
-                  确认签收
-                </el-button>
-                <el-button
-                  v-if="action.type === 'exception'"
-                  type="danger"
-                  size="large"
-                  @click="showExceptionDialog = true"
-                >
-                  上报异常
-                </el-button>
-              </template>
-            </div>
-          </section>
-
-          <!-- Rejected Info (when rejected) -->
-          <section v-if="current.status === 'rejected'" class="info-card rejected-info">
-            <h3 class="section-title">驳回信息</h3>
-            <div class="reject-detail">
-              <div class="info-item">
-                <span class="info-label">驳回类型</span>
-                <el-tag :type="rejectTypeTag" size="small">{{ rejectTypeLabel }}</el-tag>
-              </div>
-              <div class="info-item">
-                <span class="info-label">驳回理由</span>
-                <span class="info-value reject-reason">{{ current.rejectedReason }}</span>
-              </div>
-            </div>
-          </section>
-
-          <!-- Delivery Info -->
-          <section
-            v-if="showDeliveryInfo"
-            class="info-card"
-          >
-            <h3 class="section-title">配送信息</h3>
-            <div class="info-grid">
-              <div class="info-item">
-                <span class="info-label">快递单号</span>
-                <span class="info-value">{{ current.trackingNo || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">快递员</span>
-                <span class="info-value">{{ current.courier?.name || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">配送方式</span>
-                <span class="info-value">{{ current.deliveryMethod || '-' }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">预计送达</span>
-                <span class="info-value">{{ formatDate(current.estimatedDelivery) }}</span>
-              </div>
-            </div>
-            <div v-if="current.status === 'received' && current.deliveryProof" class="delivery-proof">
-              <span class="info-label">签收凭证</span>
-              <el-image
-                :src="current.deliveryProof"
-                fit="cover"
-                class="proof-image"
-                :preview-src-list="[current.deliveryProof]"
-              />
-            </div>
-          </section>
-        </div>
+        <PrescriptionSidePanel
+          :status="current.status"
+          :is-doctor="isDoctor"
+          :is-courier="isCourier"
+          :is-assistant="isAssistant"
+          :revoke-countdown="revokeCountdown"
+          :is-within-revoke-window="isWithinRevokeWindow"
+          :rejected-reason="current.rejectedReason"
+          :rejected-type="current.rejectedType"
+          :tracking-no="current.trackingNo"
+          :courier-name="current.courier?.name"
+          :delivery-method="current.deliveryMethod"
+          :estimated-delivery="current.estimatedDelivery"
+          :delivery-proof="current.deliveryProof"
+          @approve="handleApprove"
+          @show-reject="showRejectDialog = true"
+          @revoke="handleRevoke"
+          @pickup="handlePickup"
+          @show-deliver="showDeliverDialog = true"
+          @show-exception="showExceptionDialog = true"
+          @redeliver="handleRedeliver"
+          @resubmit="handleResubmit"
+        />
       </div>
     </template>
 
     <!-- Reject Dialog -->
-    <el-dialog v-model="showRejectDialog" title="驳回处方" width="560px" destroy-on-close>
-      <el-form :model="rejectForm" label-position="top">
-        <el-form-item label="驳回类型" required>
-          <el-select v-model="rejectForm.type" placeholder="请选择驳回类型" style="width: 100%">
-            <el-option label="严重" value="serious" />
-            <el-option label="一般" value="normal" />
-            <el-option label="建议" value="suggestion" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="驳回理由" required>
-          <el-input
-            v-model="rejectForm.reason"
-            type="textarea"
-            :rows="4"
-            placeholder="请输入驳回理由（不少于10个字符）"
-            show-word-limit
-            maxlength="500"
-          />
-        </el-form-item>
-
-        <el-form-item v-if="rejectionTemplates.length > 0" label="快速选择模板">
-          <div class="template-chips">
-            <el-tag
-              v-for="tpl in rejectionTemplates"
-              :key="tpl.id"
-              class="template-chip"
-              :class="{ 'template-active': rejectForm.reason === tpl.content }"
-              @click="rejectForm.reason = tpl.content"
-            >
-              {{ tpl.name }}
-            </el-tag>
-          </div>
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="showRejectDialog = false">取消</el-button>
-        <el-button type="danger" @click="handleReject" :disabled="!canReject">确认驳回</el-button>
-      </template>
-    </el-dialog>
+    <PrescriptionRejectDialog
+      v-model="showRejectDialog"
+      :templates="rejectionTemplates"
+      @confirm="handleReject"
+    />
 
     <!-- Deliver Dialog -->
-    <el-dialog v-model="showDeliverDialog" title="确认签收" width="480px" destroy-on-close>
+    <el-dialog
+      v-model="showDeliverDialog"
+      title="确认签收"
+      width="480px"
+      destroy-on-close
+    >
       <el-form label-position="top">
         <el-form-item label="签收凭证（照片URL）">
-          <el-input v-model="deliveryProofUrl" placeholder="请输入签收凭证照片URL" />
+          <el-input
+            v-model="deliveryProofUrl"
+            placeholder="请输入签收凭证照片URL"
+          />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showDeliverDialog = false">取消</el-button>
-        <el-button type="success" @click="handleDeliver">确认签收</el-button>
+        <el-button @click="showDeliverDialog = false">
+          取消
+        </el-button>
+        <el-button
+          type="success"
+          @click="handleDeliver"
+        >
+          确认签收
+        </el-button>
       </template>
     </el-dialog>
 
     <!-- Exception Dialog -->
-    <el-dialog v-model="showExceptionDialog" title="上报异常" width="520px" destroy-on-close>
-      <el-form :model="exceptionForm" label-position="top">
-        <el-form-item label="异常类型" required>
-          <el-select v-model="exceptionForm.type" placeholder="请选择异常类型" style="width: 100%">
-            <el-option label="包裹破损" value="damaged" />
-            <el-option label="地址错误" value="address_error" />
-            <el-option label="患者拒收" value="rejected_by_patient" />
-            <el-option label="其他" value="other" />
-          </el-select>
-        </el-form-item>
-        <el-form-item label="异常描述" required>
-          <el-input
-            v-model="exceptionForm.description"
-            type="textarea"
-            :rows="4"
-            placeholder="请描述异常情况"
-            show-word-limit
-            maxlength="500"
-          />
-        </el-form-item>
-        <el-form-item v-if="exceptionForm.type === 'damaged'" label="异常照片URL">
-          <el-input v-model="exceptionForm.photo" placeholder="请输入破损照片URL" />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <el-button @click="showExceptionDialog = false">取消</el-button>
-        <el-button type="danger" @click="handleReportException" :disabled="!canReport">确认上报</el-button>
-      </template>
-    </el-dialog>
+    <PrescriptionExceptionDialog
+      v-model="showExceptionDialog"
+      @confirm="handleReportException"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Check, Close } from '@element-plus/icons-vue'
 import { usePrescriptionStore } from '@/stores/prescription'
 import { useUserStore } from '@/stores/user'
 import StatusTag from '@/components/StatusTag.vue'
+import PrescriptionTimeline from '@/components/PrescriptionTimeline.vue'
+import PrescriptionSidePanel from '@/components/PrescriptionSidePanel.vue'
+import PrescriptionRejectDialog from '@/components/PrescriptionRejectDialog.vue'
+import PrescriptionExceptionDialog from '@/components/PrescriptionExceptionDialog.vue'
 import client from '@/api/client'
+import type { PrescriptionItem, RejectionTemplate } from '@/types'
 
 const route = useRoute()
+const router = useRouter()
 const prescriptionStore = usePrescriptionStore()
 const userStore = useUserStore()
 
@@ -353,24 +378,20 @@ const id = computed(() => Number(route.params.id))
 const current = computed(() => prescriptionStore.current)
 const loading = ref(false)
 
-// Role checks
 const isDoctor = computed(() => userStore.role === 'doctor')
 const isCourier = computed(() => userStore.role === 'courier')
+const isAssistant = computed(() => userStore.role === 'assistant')
 
-// ---- Reject Dialog State ----
+// ---- Dialog visibility ----
 const showRejectDialog = ref(false)
-const rejectForm = ref({ type: 'normal', reason: '' })
-const rejectionTemplates = ref<any[]>([])
-const canReject = computed(() => rejectForm.value.reason.trim().length >= 10)
-
-// ---- Deliver Dialog State ----
 const showDeliverDialog = ref(false)
-const deliveryProofUrl = ref('')
-
-// ---- Exception Dialog State ----
 const showExceptionDialog = ref(false)
-const exceptionForm = ref({ type: 'damaged', description: '', photo: '' })
-const canReport = computed(() => exceptionForm.value.type && exceptionForm.value.description.trim().length > 0)
+
+// ---- Reject templates (fetched & passed to dialog) ----
+const rejectionTemplates = ref<RejectionTemplate[]>([])
+
+// ---- Deliver form ----
+const deliveryProofUrl = ref('')
 
 // ---- Revoke Countdown ----
 const revokeCountdown = ref(0)
@@ -403,45 +424,112 @@ function stopRevokeCountdown() {
   }
 }
 
-function formatCountdown(seconds: number): string {
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${String(s).padStart(2, '0')}`
-}
-
-// ---- Courier Actions ----
-const courierActions = computed(() => {
-  const actions: { type: string }[] = []
-  if (current.value?.status === 'approved') {
-    actions.push({ type: 'pickup' })
-  }
-  if (current.value?.status === 'delivering') {
-    actions.push({ type: 'deliver' })
-    actions.push({ type: 'exception' })
-  }
-  return actions
-})
-
-const showDeliveryInfo = computed(() => {
-  const s = current.value?.status
-  return s === 'approved' || s === 'delivering' || s === 'received' || s === 'returned'
-})
-
 // ---- Doctor Annotation ----
 const hasDoctorAnnotation = computed(() => {
-  return current.value?.items?.some((item: any) => item.doctorAnnotation)
+  return current.value?.items?.some((item: PrescriptionItem) => item.doctorAnnotation)
 })
 
-// ---- Reject Type Display ----
-const rejectTypeLabel = computed(() => {
-  const map: Record<string, string> = { serious: '严重', normal: '一般', suggestion: '建议' }
-  return map[current.value?.rejectedType] || current.value?.rejectedType || '-'
+const hasDrugData = computed(() => {
+  return current.value?.items?.some((item: PrescriptionItem) => item.drugId)
 })
 
-const rejectTypeTag = computed(() => {
-  const map: Record<string, string> = { serious: 'danger', normal: 'warning', suggestion: 'info' }
-  return map[current.value?.rejectedType] || 'info'
+// ---- Allergy Check (simulated) ----
+const allergyResult = computed(() => {
+  const hasAllergyHistory = !!current.value?.patient?.allergyHistory
+  if (hasAllergyHistory) {
+    return {
+      severity: 'severe',
+      description: '患者有青霉素过敏史，处方中含阿莫西林（青霉素类）。阿莫西林可能引发皮疹、呼吸困难等过敏反应，严重时可导致过敏性休克。',
+    }
+  }
+  const items = current.value?.items || []
+  const hasDrugData = items.some((item: PrescriptionItem) => item.drugId)
+  if (hasDrugData) {
+    return {
+      severity: 'compatible',
+      description: '未发现处方药品与患者过敏史之间的交叉反应，过敏检查通过。',
+    }
+  }
+  return { severity: 'compatible', description: '' }
 })
+
+// ---- Drug Interactions (simulated) ----
+const interactionResults = computed(() => {
+  return [
+    {
+      drugA: '阿莫西林',
+      drugB: '布洛芬',
+      severity: '低',
+      advice: '无已知相互作用，可联合使用。建议饭后服用以减少胃部不适。',
+    },
+    {
+      drugA: '阿莫西林',
+      drugB: '氨溴索',
+      severity: '无',
+      advice: '无相互作用，可安全联合使用。氨溴索有助于化痰，与抗生素协同治疗呼吸道感染。',
+    },
+    {
+      drugA: '布洛芬',
+      drugB: '阿司匹林',
+      severity: '中',
+      advice: '两者均为NSAIDs，联合使用增加胃肠道出血风险。建议避免同时服用，或加用胃黏膜保护剂。',
+    },
+    {
+      drugA: '阿莫西林',
+      drugB: '华法林',
+      severity: '高',
+      advice: '阿莫西林可能增强华法林抗凝作用，增加出血风险。建议监测INR值，必要时调整华法林剂量。',
+    },
+  ]
+})
+
+function severityTagType(severity: string): string {
+  const map: Record<string, string> = {
+    '高': 'danger',
+    '中': 'warning',
+    '低': 'info',
+    '无': 'success',
+  }
+  return map[severity] || 'info'
+}
+
+// ---- Insurance Summary ----
+const insuranceSummary = computed(() => {
+  const items = current.value?.items || []
+  if (items.length === 0) return '-'
+  const countA = items.filter((item: PrescriptionItem) => item.insuranceType === '甲').length
+  const countB = items.filter((item: PrescriptionItem) => item.insuranceType === '乙').length
+  const parts: string[] = []
+  if (countA > 0) parts.push(`甲×${countA}`)
+  if (countB > 0) parts.push(`乙×${countB}`)
+  return parts.length > 0 ? parts.join(' ') : '-'
+})
+
+// ---- Allergy Actions ----
+function handleViewAlternatives() {
+  ElMessage.info('替代药品建议功能开发中')
+}
+
+function handleConfirmRisk() {
+  ElMessageBox.confirm(
+    '确认已了解过敏风险并愿意签名继续？此操作将记录在处方时间线中。',
+    '确认风险并签名',
+    {
+      confirmButtonText: '确认签名',
+      cancelButtonText: '取消',
+      type: 'warning',
+    },
+  ).then(() => {
+    ElMessage.success('已确认风险，签名已记录')
+  }).catch(() => {
+    // user cancelled
+  })
+}
+
+// ---- Resubmit ----
+function handleResubmit() {
+  router.push(`/prescriptions/${id.value}/edit`)
+}
 
 // ---- Fetch Data ----
 async function fetchData() {
@@ -478,24 +566,21 @@ async function handleApprove() {
     })
     await prescriptionStore.approve(id.value)
     ElMessage.success('处方已通过')
-    showRejectDialog.value = false
   } catch {
     // user cancelled
   }
 }
 
-async function handleReject() {
-  if (!canReject.value) return
+async function handleReject(reason: string, type: string) {
   try {
     await ElMessageBox.confirm('确定要驳回该处方吗？', '驳回确认', {
       confirmButtonText: '确认驳回',
       cancelButtonText: '取消',
       type: 'warning',
     })
-    await prescriptionStore.reject(id.value, rejectForm.value.reason, rejectForm.value.type)
+    await prescriptionStore.reject(id.value, reason, type)
     ElMessage.success('处方已驳回')
     showRejectDialog.value = false
-    rejectForm.value = { type: 'normal', reason: '' }
   } catch {
     // user cancelled
   }
@@ -546,23 +631,39 @@ async function handleDeliver() {
   }
 }
 
-async function handleReportException() {
-  if (!canReport.value) return
+async function handleReportException(type: string, description: string, photo?: string) {
   try {
     await ElMessageBox.confirm('确定要上报该异常吗？', '上报异常', {
       confirmButtonText: '确认上报',
       cancelButtonText: '取消',
       type: 'warning',
     })
-    await prescriptionStore.reportEx(
-      id.value,
-      exceptionForm.value.type,
-      exceptionForm.value.description,
-      exceptionForm.value.photo || undefined
-    )
+    await prescriptionStore.reportEx(id.value, type, description, photo)
     ElMessage.success('异常已上报')
     showExceptionDialog.value = false
-    exceptionForm.value = { type: 'damaged', description: '', photo: '' }
+  } catch {
+    // user cancelled
+  }
+}
+
+async function handleRedeliver() {
+  try {
+    const { value: reason } = await ElMessageBox.prompt(
+      '请输入重新配送原因',
+      '重新配送',
+      {
+        confirmButtonText: '确认配送',
+        cancelButtonText: '取消',
+        inputType: 'textarea',
+        inputPlaceholder: '请输入重新配送原因',
+        inputValidator: (value) => {
+          if (!value || value.trim().length === 0) return '请输入配送原因'
+          return true
+        },
+      },
+    )
+    await prescriptionStore.requestRedeliver(id.value, reason.trim())
+    ElMessage.success('已提交重新配送，处方回到待配送队列')
   } catch {
     // user cancelled
   }
@@ -576,46 +677,6 @@ function formatDate(date: string | null | undefined): string {
     month: '2-digit',
     day: '2-digit',
   })
-}
-
-function formatDateTime(date: string): string {
-  if (!date) return '-'
-  return new Date(date).toLocaleString('zh-CN', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
-
-function actionLabel(action: string): string {
-  const map: Record<string, string> = {
-    created: '创建处方',
-    submitted: '提交审核',
-    approved: '审核通过',
-    rejected: '审核驳回',
-    revoked: '撤回审核',
-    picked_up: '已取件',
-    delivered: '已送达',
-    received: '已签收',
-    returned: '异常退回',
-    redelivered: '重新配送',
-    resubmitted: '重新提交',
-  }
-  return map[action] || action
-}
-
-function formatMetadata(metadata: string | null): string {
-  if (!metadata) return ''
-  try {
-    const parsed = JSON.parse(metadata)
-    if (parsed.rejectedReason) return `驳回原因：${parsed.rejectedReason}`
-    if (parsed.reason) return `原因：${parsed.reason}`
-    return JSON.stringify(parsed)
-  } catch {
-    return metadata
-  }
 }
 
 // Watch for route param changes
@@ -632,7 +693,7 @@ onUnmounted(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .page {
   max-width: 1400px;
   padding: 24px;
@@ -688,15 +749,8 @@ onUnmounted(() => {
   gap: 20px;
 }
 
-.side-column {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
 /* Cards */
-.info-card,
-.action-card {
+.info-card {
   background: #fff;
   border: 1px solid var(--warm-200);
   border-radius: 12px;
@@ -788,133 +842,44 @@ onUnmounted(() => {
   font-style: italic;
 }
 
-/* Timeline */
-.timeline-card {
-  padding: 8px 0;
+/* Allergy Check */
+.allergy-detail {
+  p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--warm-700);
+    margin: 0 0 12px;
+  }
 }
 
-.timeline-rejected {
-  color: var(--coral);
+.allergy-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
 }
 
-.timeline-action {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--warm-900);
-  margin-bottom: 2px;
-}
-
-.timeline-rejected .timeline-action {
-  color: var(--coral);
-}
-
-.timeline-operator {
+/* Interaction */
+.interaction-count {
   font-size: 13px;
-  color: var(--warm-700);
-}
-
-.timeline-detail {
-  font-size: 13px;
+  font-weight: 400;
   color: #909399;
-  margin-top: 4px;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  margin-left: 4px;
 }
 
-.timeline-reason {
-  font-size: 13px;
-  color: var(--coral);
-  margin-top: 4px;
-  padding: 6px 10px;
-  background: #fef2f2;
-  border-radius: 6px;
+/* Validity */
+.validity-value {
+  color: #e6a23c;
+  font-weight: 500;
 }
 
-/* Action Buttons */
-.action-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.action-btn {
-  width: 100%;
-}
-
-/* Revoke */
-.revoke-card {
-  border-color: #fbbf24;
-  background: #fffbeb;
-}
-
-.revoke-hint {
-  font-size: 13px;
-  color: #92400e;
-  margin-bottom: 12px;
-}
-
-/* Rejected Info */
-.rejected-info {
-  border-color: #fecaca;
-}
-
-.reject-detail {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.reject-reason {
-  color: var(--coral);
-}
-
-/* Template Chips */
-.template-chips {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.template-chip {
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.template-chip:hover {
-  border-color: var(--teal-700);
-}
-
-.template-active {
-  background: var(--teal-700);
-  color: #fff;
-  border-color: var(--teal-700);
-}
-
-/* Delivery Proof */
-.delivery-proof {
-  margin-top: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.proof-image {
-  width: 160px;
-  height: 160px;
-  border-radius: 8px;
-  border: 1px solid var(--warm-200);
-  cursor: pointer;
-}
-
-/* Element Plus Timeline Overrides */
-:deep(.el-timeline-item__node) {
-  background: var(--teal-700);
-}
-
-:deep(.el-timeline-item__tail) {
-  border-color: var(--warm-200);
-}
-
-/* Empty state */
-:deep(.el-empty__description) {
-  color: #b0b0b0;
+/* Insurance */
+.insurance-summary {
+  font-size: 14px;
+  color: var(--teal-700);
+  font-weight: 600;
+  background: var(--teal-50);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 </style>

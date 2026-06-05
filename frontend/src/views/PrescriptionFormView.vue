@@ -1,6 +1,8 @@
 <template>
   <div class="prescription-form-page">
-    <h1 class="page-title">{{ isEdit ? '编辑处方' : '新建处方' }}</h1>
+    <h1 class="page-title">
+      {{ resubmitMode ? '修改并重新提交' : isEdit ? '编辑处方' : '新建处方' }}
+    </h1>
 
     <el-form
       ref="formRef"
@@ -10,16 +12,54 @@
       class="prescription-form"
       @submit.prevent
     >
+      <!-- Reject Alert Banner -->
+      <el-alert
+        v-if="resubmitMode && rejectedInfo"
+        title="驳回原因"
+        type="warning"
+        :closable="false"
+        show-icon
+        class="reject-alert"
+      >
+        <template #default>
+          <div class="reject-info-banner">
+            <div class="reject-line">
+              <span class="reject-label">驳回类型：</span>
+              <el-tag
+                :type="rejectTagType"
+                size="small"
+              >
+                {{ rejectTypeLabel }}
+              </el-tag>
+            </div>
+            <div class="reject-line">
+              <span class="reject-label">驳回理由：</span>
+              <span class="reject-text">{{ rejectedInfo.reason }}</span>
+            </div>
+          </div>
+        </template>
+      </el-alert>
+
       <!-- ==================== Section 1: Patient Selector ==================== -->
       <div class="form-section">
         <div class="section-header">
-          <h2 class="section-title">患者信息</h2>
-          <el-button type="primary" plain size="small" @click="openPatientDrawer">
+          <h2 class="section-title">
+            患者信息
+          </h2>
+          <el-button
+            type="primary"
+            plain
+            size="small"
+            @click="showPatientDrawer = true"
+          >
             新增患者
           </el-button>
         </div>
 
-        <el-form-item label="选择患者" prop="patientId">
+        <el-form-item
+          label="选择患者"
+          prop="patientId"
+        >
           <el-select
             v-model="form.patientId"
             filterable
@@ -42,7 +82,10 @@
         </el-form-item>
 
         <!-- Selected Patient Info Card -->
-        <div v-if="selectedPatient" class="patient-card">
+        <div
+          v-if="selectedPatient"
+          class="patient-card"
+        >
           <div class="patient-card-header">
             <span class="patient-name">{{ selectedPatient.name }}</span>
             <el-tag
@@ -82,12 +125,22 @@
       <!-- ==================== Section 2: Diagnosis ==================== -->
       <div class="form-section">
         <div class="section-header">
-          <h2 class="section-title">诊断信息</h2>
+          <h2 class="section-title">
+            诊断信息
+          </h2>
           <div class="section-actions">
-            <el-dropdown trigger="click" @command="loadTemplate">
-              <el-button type="default" size="small">
+            <el-dropdown
+              trigger="click"
+              @command="loadTemplate"
+            >
+              <el-button
+                type="default"
+                size="small"
+              >
                 加载模板
-                <el-icon class="el-icon--right"><ArrowDown /></el-icon>
+                <el-icon class="el-icon--right">
+                  <ArrowDown />
+                </el-icon>
               </el-button>
               <template #dropdown>
                 <el-dropdown-menu>
@@ -107,13 +160,20 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
-            <el-button type="default" size="small" @click="openSaveTemplateDialog">
+            <el-button
+              type="default"
+              size="small"
+              @click="openSaveTemplateDialog"
+            >
               保存为模板
             </el-button>
           </div>
         </div>
 
-        <el-form-item label="诊断描述" prop="diagnosis">
+        <el-form-item
+          label="诊断描述"
+          prop="diagnosis"
+        >
           <el-input
             v-model="form.diagnosis"
             type="textarea"
@@ -126,7 +186,9 @@
       <!-- ==================== Section 3: Drug Items ==================== -->
       <div class="form-section">
         <div class="section-header">
-          <h2 class="section-title">药品明细</h2>
+          <h2 class="section-title">
+            药品明细
+          </h2>
           <el-button
             type="primary"
             plain
@@ -138,98 +200,30 @@
           </el-button>
         </div>
 
-        <div v-if="form.items.length === 0" class="empty-items">
+        <div
+          v-if="form.items.length === 0"
+          class="empty-items"
+        >
           <p>尚未添加药品，请点击"添加药品"开始</p>
         </div>
 
-        <div
+        <PrescriptionDrugItemRow
           v-for="(item, index) in form.items"
           :key="item._key"
-          class="drug-item-row"
-        >
-          <div class="drug-item-header">
-            <span class="drug-item-index">药品 {{ index + 1 }}</span>
-            <el-button
-              v-if="form.items.length > MIN_ITEMS"
-              type="danger"
-              link
-              size="small"
-              @click="removeDrugItem(index)"
-            >
-              <el-icon><Delete /></el-icon>
-              删除
-            </el-button>
-          </div>
-
-          <div class="drug-item-fields">
-            <div class="field-group">
-              <label class="field-label required">药品名称</label>
-              <el-input
-                v-model="item.drugName"
-                placeholder="如：阿莫西林胶囊"
-              />
-              <span v-if="itemErrors[index]?.drugName" class="field-error">
-                {{ itemErrors[index].drugName }}
-              </span>
-            </div>
-
-            <div class="field-group">
-              <label class="field-label">规格</label>
-              <el-input
-                v-model="item.specification"
-                placeholder="如：0.5g x 24粒"
-              />
-            </div>
-
-            <div class="field-group">
-              <label class="field-label required">用量</label>
-              <el-input
-                v-model="item.dosage"
-                placeholder="如：0.5g"
-              />
-              <span v-if="itemErrors[index]?.dosage" class="field-error">
-                {{ itemErrors[index].dosage }}
-              </span>
-            </div>
-
-            <div class="field-group">
-              <label class="field-label">频次</label>
-              <el-select v-model="item.frequency" placeholder="选择频次">
-                <el-option label="每日一次 (qd)" value="qd" />
-                <el-option label="每日两次 (bid)" value="bid" />
-                <el-option label="每日三次 (tid)" value="tid" />
-                <el-option label="每晚一次 (qn)" value="qn" />
-              </el-select>
-            </div>
-
-            <div class="field-group">
-              <label class="field-label required">天数</label>
-              <el-input-number
-                v-model="item.days"
-                :min="1"
-                :max="90"
-                :step="1"
-                controls-position="right"
-              />
-              <span v-if="itemErrors[index]?.days" class="field-error">
-                {{ itemErrors[index].days }}
-              </span>
-            </div>
-
-            <div class="field-group field-group-remark">
-              <label class="field-label">备注</label>
-              <el-input
-                v-model="item.remark"
-                placeholder="用药说明..."
-              />
-            </div>
-          </div>
-        </div>
+          :item="item"
+          :index="index"
+          :can-delete="form.items.length > MIN_ITEMS"
+          :errors="itemErrors[index]"
+          @update:item="onUpdateItem(index, $event)"
+          @remove="removeDrugItem(index)"
+        />
       </div>
 
       <!-- ==================== Section 4: Note ==================== -->
       <div class="form-section">
-        <h2 class="section-title">备注</h2>
+        <h2 class="section-title">
+          备注
+        </h2>
         <el-form-item prop="note">
           <el-input
             v-model="form.note"
@@ -261,66 +255,10 @@
     </el-form>
 
     <!-- ==================== Patient Creation Drawer ==================== -->
-    <el-drawer
+    <PrescriptionPatientDrawer
       v-model="showPatientDrawer"
-      title="新增患者"
-      direction="rtl"
-      size="480px"
-    >
-      <el-form
-        ref="patientFormRef"
-        :model="patientForm"
-        :rules="patientRules"
-        label-position="top"
-      >
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="patientForm.name" placeholder="请输入患者姓名" />
-        </el-form-item>
-
-        <el-form-item label="性别" prop="gender">
-          <el-select v-model="patientForm.gender" placeholder="请选择性别">
-            <el-option label="男" value="male" />
-            <el-option label="女" value="female" />
-          </el-select>
-        </el-form-item>
-
-        <el-form-item label="年龄" prop="age">
-          <el-input-number v-model="patientForm.age" :min="0" :max="150" />
-        </el-form-item>
-
-        <el-form-item label="手机号" prop="phone">
-          <el-input v-model="patientForm.phone" placeholder="请输入手机号" />
-        </el-form-item>
-
-        <el-form-item label="地址">
-          <el-input v-model="patientForm.address" placeholder="请输入地址" />
-        </el-form-item>
-
-        <el-form-item label="身份证号">
-          <el-input v-model="patientForm.idCard" placeholder="请输入身份证号" />
-        </el-form-item>
-
-        <el-form-item label="过敏史">
-          <el-input
-            v-model="patientForm.allergyHistory"
-            type="textarea"
-            :rows="2"
-            placeholder="如无过敏史请留空"
-          />
-        </el-form-item>
-      </el-form>
-
-      <template #footer>
-        <el-button @click="showPatientDrawer = false">取消</el-button>
-        <el-button
-          type="primary"
-          :loading="creatingPatient"
-          @click="handleCreatePatient"
-        >
-          确认创建
-        </el-button>
-      </template>
-    </el-drawer>
+      @created="onPatientCreated"
+    />
 
     <!-- ==================== Save Template Dialog ==================== -->
     <el-dialog
@@ -337,7 +275,9 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showSaveTemplateDialog = false">取消</el-button>
+        <el-button @click="showSaveTemplateDialog = false">
+          取消
+        </el-button>
         <el-button
           type="primary"
           :loading="savingTemplate"
@@ -354,12 +294,24 @@
 import { ref, reactive, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowDown, Delete } from '@element-plus/icons-vue'
+import { ArrowDown } from '@element-plus/icons-vue'
 import { usePrescriptionStore } from '@/stores/prescription'
 import { usePatientStore } from '@/stores/patient'
 import { getTemplates, saveTemplate } from '@/api/prescriptions'
 import { useDraft } from '@/composables/useDraft'
+import PrescriptionPatientDrawer from '@/components/PrescriptionPatientDrawer.vue'
+import PrescriptionDrugItemRow from '@/components/PrescriptionDrugItemRow.vue'
+import type { DrugItem } from '@/components/PrescriptionDrugItemRow.vue'
 import type { FormInstance, FormRules } from 'element-plus'
+import type { Patient, PrescriptionItem, PrescriptionTemplate, Prescription } from '@/types'
+
+/** 草稿恢复数据结构 */
+interface DraftData {
+  patientId?: number
+  diagnosis?: string
+  items?: DrugItem[]
+  note?: string
+}
 
 // ==================== Constants ====================
 const MIN_ITEMS = 1
@@ -371,22 +323,33 @@ const route = useRoute()
 const router = useRouter()
 const isEdit = computed(() => route.name === 'PrescriptionEdit')
 
+const prescriptionId = computed(() => route.params.id ? Number(route.params.id) : null)
+const originalPrescription = ref<Prescription | null>(null)
+const resubmitMode = ref(false)
+
+const rejectedInfo = computed(() => {
+  if (!resubmitMode.value || !originalPrescription.value) return null
+  return {
+    type: originalPrescription.value.rejectedType,
+    reason: originalPrescription.value.rejectedReason || '无',
+  }
+})
+
+const rejectTypeLabel = computed(() => {
+  const map: Record<string, string> = { serious: '严重', normal: '一般', suggestion: '建议' }
+  return map[rejectedInfo.value?.type ?? ''] || rejectedInfo.value?.type || '-'
+})
+
+const rejectTagType = computed(() => {
+  const map: Record<string, string> = { serious: 'danger', normal: 'warning', suggestion: 'info' }
+  return map[rejectedInfo.value?.type ?? ''] || 'info'
+})
+
 const prescriptionStore = usePrescriptionStore()
 const patientStore = usePatientStore()
 
 // ==================== Draft ====================
 const { draft, startAutoSave, stopAutoSave, clearDraft } = useDraft(DRAFT_KEY)
-
-// ==================== Types ====================
-interface DrugItem {
-  _key: string
-  drugName: string
-  specification: string
-  dosage: string
-  frequency: string
-  days: number
-  remark: string
-}
 
 // ==================== Form State ====================
 const formRef = ref<FormInstance>()
@@ -429,7 +392,8 @@ const rules: FormRules = {
 // ==================== Patient Selector ====================
 const patientLoading = ref(false)
 const patientOptions = computed(() => patientStore.list)
-const selectedPatient = ref<any>(null)
+const selectedPatient = ref<Patient | null>(null)
+const showPatientDrawer = ref(false)
 
 function searchPatients(query: string) {
   if (!query || query.trim().length === 0) return
@@ -444,11 +408,22 @@ function onPatientSelect(patientId: number | null) {
     selectedPatient.value = null
     return
   }
-  const found = patientStore.list.find((p: any) => p.id === patientId)
+  const found = patientStore.list.find((p: Patient) => p.id === patientId)
   selectedPatient.value = found || null
 }
 
+function onPatientCreated(newPatient: { id: number; name: string }) {
+  form.patientId = newPatient.id
+  const found = patientStore.list.find((p: Patient) => p.id === newPatient.id)
+  selectedPatient.value = found || null
+  patientStore.fetchList({ name: newPatient.name })
+}
+
 // ==================== Drug Items ====================
+function onUpdateItem(index: number, updated: DrugItem) {
+  form.items[index] = updated
+}
+
 function addDrugItem() {
   if (form.items.length >= MAX_ITEMS) return
   form.items.push(createEmptyItem())
@@ -486,7 +461,7 @@ function validateItems(): boolean {
 }
 
 // ==================== Templates ====================
-const templates = ref<any[]>([])
+const templates = ref<PrescriptionTemplate[]>([])
 const showSaveTemplateDialog = ref(false)
 const templateName = ref('')
 const savingTemplate = ref(false)
@@ -500,10 +475,10 @@ async function fetchTemplates() {
   }
 }
 
-function loadTemplate(template: any) {
+function loadTemplate(template: PrescriptionTemplate) {
   form.diagnosis = template.diagnosis || ''
   if (template.items && template.items.length > 0) {
-    form.items = template.items.map((item: any) => ({
+    form.items = template.items.map((item: PrescriptionItem) => ({
       ...createEmptyItem(),
       drugName: item.drugName || '',
       specification: item.specification || '',
@@ -546,68 +521,41 @@ async function handleSaveTemplate() {
   }
 }
 
-// ==================== Patient Creation ====================
-const showPatientDrawer = ref(false)
-const patientFormRef = ref<FormInstance>()
-const creatingPatient = ref(false)
-
-const defaultPatientForm = () => ({
-  name: '',
-  gender: 'male' as string,
-  age: 30,
-  phone: '',
-  address: '',
-  idCard: '',
-  allergyHistory: '',
-})
-
-const patientForm = reactive({ ...defaultPatientForm() })
-
-const patientRules: FormRules = {
-  name: [
-    { required: true, message: '请输入姓名', trigger: 'blur' },
-  ],
-  gender: [
-    { required: true, message: '请选择性别', trigger: 'change' },
-  ],
-  age: [
-    { required: true, message: '请输入年龄', trigger: 'blur' },
-  ],
-  phone: [
-    { required: true, message: '请输入手机号', trigger: 'blur' },
-    { pattern: /^1[3-9]\d{9}$/, message: '请输入正确的手机号', trigger: 'blur' },
-  ],
-}
-
-function openPatientDrawer() {
-  Object.assign(patientForm, defaultPatientForm())
-  showPatientDrawer.value = true
-}
-
-async function handleCreatePatient() {
-  if (!patientFormRef.value) return
+// ==================== Load for Edit / Resubmit ====================
+async function loadPrescriptionForEdit() {
+  if (!prescriptionId.value) return
   try {
-    await patientFormRef.value.validate()
+    await prescriptionStore.fetchDetail(prescriptionId.value)
+    originalPrescription.value = prescriptionStore.current
+    if (!originalPrescription.value) {
+      ElMessage.error('处方数据不存在')
+      router.push('/prescriptions')
+      return
+    }
+    const p = originalPrescription.value
+    form.patientId = p.patientId
+    form.diagnosis = p.diagnosis || ''
+    form.note = p.note || ''
+    if (p.items?.length > 0) {
+      form.items = ensureItemKeys(p.items.map((item: PrescriptionItem) => ({
+        drugName: item.drugName || '',
+        specification: item.specification || '',
+        dosage: item.dosage || '',
+        frequency: item.frequency || 'qd',
+        days: item.days || 7,
+        remark: item.remark || '',
+      })))
+    }
+    if (p.status === 'rejected') {
+      resubmitMode.value = true
+    }
+    if (form.patientId) {
+      await patientStore.fetchList({})
+      onPatientSelect(form.patientId)
+    }
   } catch {
-    return
-  }
-
-  creatingPatient.value = true
-  try {
-    const newPatient = await patientStore.create({ ...patientForm })
-    ElMessage.success('患者创建成功')
-    showPatientDrawer.value = false
-
-    // Auto-select the newly created patient
-    form.patientId = newPatient.id
-    selectedPatient.value = newPatient
-
-    // Refresh patient list in background
-    patientStore.fetchList({ name: newPatient.name })
-  } catch {
-    ElMessage.error('患者创建失败')
-  } finally {
-    creatingPatient.value = false
+    ElMessage.error('加载处方数据失败')
+    router.push('/prescriptions')
   }
 }
 
@@ -649,7 +597,6 @@ async function handleSubmit() {
   }
   if (!validateItems()) return
 
-  // Validate the static form field
   try {
     await formRef.value?.validate()
   } catch {
@@ -659,11 +606,17 @@ async function handleSubmit() {
   submitting.value = true
   try {
     const payload = buildPayload()
-    const result = await prescriptionStore.create(payload)
-    await prescriptionStore.submit(result.id)
+    if (isEdit.value && prescriptionId.value) {
+      await prescriptionStore.update(prescriptionId.value, payload)
+      await prescriptionStore.submit(prescriptionId.value)
+    } else {
+      const result = await prescriptionStore.create(payload)
+      await prescriptionStore.submit(result.id)
+    }
     clearDraft()
     stopAutoSave()
-    ElMessage.success('处方已提交审核')
+    const successMsg = resubmitMode.value ? '处方已重新提交审核' : '处方已提交审核'
+    ElMessage.success(successMsg)
     router.push('/prescriptions')
   } catch {
     ElMessage.error('处方提交失败')
@@ -673,12 +626,12 @@ async function handleSubmit() {
 }
 
 // ==================== Draft Utilities ====================
-function ensureItemKeys(items: any[]): DrugItem[] {
-  return items.map((item: any) => {
+function ensureItemKeys(items: Partial<PrescriptionItem>[]): DrugItem[] {
+  return items.map((item) => {
     if (!item._key) {
-      return { ...item, _key: `drug_${++itemKeyCounter}` }
+      return { ...item, _key: `drug_${++itemKeyCounter}` } as DrugItem
     }
-    return item
+    return item as DrugItem
   })
 }
 
@@ -694,15 +647,14 @@ function getDraftData() {
   }
 }
 
-async function restoreDraft(draftData: any) {
+async function restoreDraft(draftData: DraftData) {
   form.patientId = draftData.patientId || null
   form.diagnosis = draftData.diagnosis || ''
   form.items = ensureItemKeys(draftData.items || [createEmptyItem()])
   form.note = draftData.note || ''
 
-  // Try to restore patient card
   if (draftData.patientId) {
-    const found = patientStore.list.find((p: any) => p.id === draftData.patientId)
+    const found = patientStore.list.find((p: Patient) => p.id === draftData.patientId)
     if (found) {
       selectedPatient.value = found
     }
@@ -713,7 +665,11 @@ async function restoreDraft(draftData: any) {
 onMounted(async () => {
   await fetchTemplates()
 
-  // Check for existing draft
+  if (isEdit.value) {
+    await loadPrescriptionForEdit()
+    return
+  }
+
   if (draft.value) {
     try {
       await ElMessageBox.confirm(
@@ -727,12 +683,10 @@ onMounted(async () => {
       )
       await restoreDraft(draft.value)
     } catch {
-      // User chose to discard
       clearDraft()
     }
   }
 
-  // Start auto-save
   startAutoSave(() => getDraftData())
 })
 
@@ -741,7 +695,7 @@ onBeforeUnmount(() => {
 })
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .prescription-form-page {
   max-width: 1400px;
   margin: 0 auto;
@@ -868,67 +822,6 @@ onBeforeUnmount(() => {
   font-size: 14px;
 }
 
-.drug-item-row {
-  background: var(--warm-50);
-  border: 1px solid var(--warm-200);
-  border-radius: 10px;
-  padding: 16px 20px;
-  margin-bottom: 12px;
-}
-
-.drug-item-row:last-child {
-  margin-bottom: 0;
-}
-
-.drug-item-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.drug-item-index {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--teal-700);
-}
-
-.drug-item-fields {
-  display: grid;
-  grid-template-columns: 1.5fr 1fr 0.8fr 1fr 90px 1.2fr;
-  gap: 12px;
-  align-items: start;
-}
-
-.field-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.field-group-remark {
-  grid-column: 6;
-}
-
-.field-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--warm-700);
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.field-label.required::after {
-  content: ' *';
-  color: var(--coral);
-}
-
-.field-error {
-  font-size: 12px;
-  color: var(--coral);
-  margin-top: 2px;
-}
-
 /* ==================== Action Bar ==================== */
 .action-bar {
   display: flex;
@@ -937,29 +830,41 @@ onBeforeUnmount(() => {
   padding: 24px 0;
 }
 
-/* ==================== Responsive ==================== */
-@media (max-width: 1024px) {
-  .drug-item-fields {
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-  }
-  .field-group-remark {
-    grid-column: span 2;
-  }
+/* ==================== Reject Alert ==================== */
+.reject-alert {
+  margin-bottom: 20px;
 }
 
+.reject-info-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reject-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.reject-label {
+  color: var(--warm-700);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.reject-text {
+  color: var(--coral);
+}
+
+/* ==================== Responsive ==================== */
 @media (max-width: 640px) {
   .prescription-form-page {
     padding: 16px;
   }
   .form-section {
     padding: 16px;
-  }
-  .drug-item-fields {
-    grid-template-columns: 1fr;
-  }
-  .field-group-remark {
-    grid-column: 1;
   }
 }
 </style>

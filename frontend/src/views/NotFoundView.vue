@@ -1,19 +1,38 @@
 <template>
   <div class="error-page">
     <!-- Decorative circles -->
-    <div class="deco-circle deco-circle--tl" aria-hidden="true"></div>
-    <div class="deco-circle deco-circle--br" aria-hidden="true"></div>
-    <div class="deco-circle deco-circle--tr" aria-hidden="true"></div>
+    <div
+      class="deco-circle deco-circle--tl"
+      aria-hidden="true"
+    />
+    <div
+      class="deco-circle deco-circle--br"
+      aria-hidden="true"
+    />
+    <div
+      class="deco-circle deco-circle--tr"
+      aria-hidden="true"
+    />
 
     <div class="error-center">
       <!-- Watermark number -->
-      <div class="watermark" aria-hidden="true">404</div>
+      <div
+        class="watermark"
+        aria-hidden="true"
+      >
+        404
+      </div>
 
       <!-- Medical cross icon -->
-      <div class="medical-cross" aria-hidden="true"></div>
+      <div
+        class="medical-cross"
+        aria-hidden="true"
+      />
 
       <!-- Title -->
-      <h1 class="error-title">页面未找到</h1>
+      <h1 class="error-title">
+        页面未找到
+      </h1>
 
       <!-- Subtitle -->
       <p class="error-subtitle">
@@ -57,7 +76,7 @@ function goLogin() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 /* ========= Page Background ========= */
 .error-page {
   display: flex;

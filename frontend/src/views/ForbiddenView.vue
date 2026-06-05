@@ -1,22 +1,41 @@
 <template>
   <div class="error-page">
     <!-- Decorative circles -->
-    <div class="deco-circle deco-circle--tl" aria-hidden="true"></div>
-    <div class="deco-circle deco-circle--br" aria-hidden="true"></div>
-    <div class="deco-circle deco-circle--tr" aria-hidden="true"></div>
+    <div
+      class="deco-circle deco-circle--tl"
+      aria-hidden="true"
+    />
+    <div
+      class="deco-circle deco-circle--br"
+      aria-hidden="true"
+    />
+    <div
+      class="deco-circle deco-circle--tr"
+      aria-hidden="true"
+    />
 
     <div class="error-center">
       <!-- Watermark number -->
-      <div class="watermark" aria-hidden="true">403</div>
+      <div
+        class="watermark"
+        aria-hidden="true"
+      >
+        403
+      </div>
 
       <!-- Shield-lock icon (abstract geometric) -->
-      <div class="shield-icon" aria-hidden="true">
-        <div class="shield-body"></div>
-        <div class="shield-lock"></div>
+      <div
+        class="shield-icon"
+        aria-hidden="true"
+      >
+        <div class="shield-body" />
+        <div class="shield-lock" />
       </div>
 
       <!-- Title -->
-      <h1 class="error-title">访问受限</h1>
+      <h1 class="error-title">
+        访问受限
+      </h1>
 
       <!-- Subtitle -->
       <p class="error-subtitle">
@@ -58,7 +77,7 @@ function goLogin() {
 }
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 /* ========= Page Background ========= */
 .error-page {
   display: flex;

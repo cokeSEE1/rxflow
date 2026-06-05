@@ -1,5 +1,10 @@
 <template>
-  <el-tag :type="tagType" size="small">{{ label }}</el-tag>
+  <el-tag
+    :type="tagType"
+    size="small"
+  >
+    {{ label }}
+  </el-tag>
 </template>
 
 <script setup lang="ts">

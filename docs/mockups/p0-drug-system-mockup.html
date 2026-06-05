@@ -1,0 +1,1060 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RxFlow — P0 药品主数据系统原型</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal-900: #134e4a; --teal-800: #115e59; --teal-700: #0f766e; --teal-600: #0d9488; --teal-500: #14b8a6; --teal-200: #99f6e4; --teal-100: #ccfbf1; --teal-50: #f0fdfa;
+    --coral: #f43f5e; --coral-600: #e11d48; --coral-100: #ffe4e6; --coral-50: #fff1f2;
+    --amber: #f59e0b; --amber-500: #f59e0b; --amber-100: #fef3c7; --amber-50: #fffbeb;
+    --green-500: #22c55e; --green-100: #dcfce7; --green-50: #f0fdf4;
+    --blue-500: #3b82f6; --blue-50: #eff6ff;
+    --orange-500: #f97316; --orange-100: #ffedd5; --orange-50: #fff7ed;
+    --red-500: #ef4444; --red-100: #fee2e2; --red-50: #fef2f2;
+    --yellow-500: #eab308; --yellow-100: #fef9c3; --yellow-50: #fefce8;
+    --purple-500: #a855f7; --purple-50: #faf5ff;
+    --warm-50: #fafaf9; --warm-100: #f5f5f4; --warm-200: #e7e5e4; --warm-300: #d6d3d1; --warm-400: #a8a29e; --warm-500: #78716c; --warm-700: #44403c; --warm-900: #1c1917;
+    --radius-sm: 6px; --radius: 10px; --radius-lg: 14px; --radius-xl: 20px;
+    --shadow-card: 0 1px 3px rgba(0,0,0,0.04), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-elevated: 0 4px 16px rgba(0,0,0,0.08), 0 2px 4px rgba(0,0,0,0.04);
+    --shadow-dialog: 0 12px 40px rgba(0,0,0,0.14), 0 4px 12px rgba(0,0,0,0.06);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'DM Sans', system-ui, sans-serif; background: var(--warm-50); color: var(--warm-900); display: flex; height: 100vh; overflow: hidden; }
+
+  /* ==================== SIDEBAR ==================== */
+  .sidebar { width: 220px; background: linear-gradient(180deg, #0d5c56 0%, var(--teal-900) 100%); display: flex; flex-direction: column; flex-shrink: 0; z-index: 10; }
+  .sidebar-brand { padding: 20px 20px 28px; font-family: 'DM Serif Display', Georgia, serif; font-size: 24px; color: #fff; letter-spacing: 0.02em; }
+  .sidebar-brand span { color: var(--teal-500); }
+  .sidebar-role-tag { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 10px; font-weight: 600; background: rgba(255,255,255,0.15); color: rgba(255,255,255,0.8); margin: 0 20px 10px; width: fit-content; }
+  .nav-section { padding: 8px 20px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); font-weight: 600; }
+  .nav-item { display: flex; align-items: center; gap: 10px; padding: 10px 20px; margin: 2px 8px; border-radius: 8px; color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.25s ease; text-decoration: none; }
+  .nav-item:hover { color: #fff; background: rgba(255,255,255,0.08); }
+  .nav-item.active { color: #fff; background: rgba(255,255,255,0.12); font-weight: 600; }
+  .nav-item .badge { margin-left: auto; background: var(--coral); color: #fff; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 10px; min-width: 18px; text-align: center; }
+  .sidebar-user { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; margin-top: auto; }
+  .sidebar-user .avatar { width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, var(--teal-600), var(--teal-700)); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; flex-shrink: 0; }
+  .sidebar-user .name { font-size: 13px; color: #fff; font-weight: 500; }
+  .sidebar-user .role { font-size: 10px; color: rgba(255,255,255,0.35); }
+
+  /* ==================== MAIN LAYOUT ==================== */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .header { height: 56px; padding: 0 28px; display: flex; align-items: center; justify-content: space-between; background: #fff; border-bottom: 1px solid var(--warm-200); flex-shrink: 0; }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .page-title { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; }
+  .header-right { display: flex; align-items: center; gap: 12px; }
+  .content { flex: 1; overflow-y: auto; padding: 24px 28px; }
+
+  /* ==================== BUTTONS ==================== */
+  .btn { padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif; cursor: pointer; border: none; transition: all 0.15s ease; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+  .btn-primary { background: var(--teal-700); color: #fff; }
+  .btn-primary:hover { background: var(--teal-900); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(15,118,110,0.25); }
+  .btn-outline { background: #fff; color: var(--warm-700); border: 1.5px solid var(--warm-200); }
+  .btn-outline:hover { border-color: var(--warm-300); background: var(--warm-50); }
+  .btn-danger { background: var(--coral); color: #fff; }
+  .btn-danger:hover { background: var(--coral-600); }
+  .btn-ghost { background: transparent; color: var(--warm-500); }
+  .btn-ghost:hover { background: var(--warm-100); color: var(--warm-700); }
+  .btn-sm { padding: 5px 12px; font-size: 12px; border-radius: var(--radius-sm); }
+  .btn-lg { padding: 10px 28px; font-size: 14px; }
+  .btn:disabled, .btn[disabled] { opacity: 0.45; cursor: not-allowed; pointer-events: none; }
+
+  /* ==================== CARDS ==================== */
+  .card { background: #fff; border-radius: var(--radius-lg); padding: 24px; box-shadow: var(--shadow-card); margin-bottom: 20px; }
+  .card h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 16px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--warm-100); }
+  .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--warm-100); }
+  .section-header h3 { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }
+  .section-header .spacer { flex: 1; }
+
+  /* ==================== VIEW TABS ==================== */
+  .view-tabs { display: flex; gap: 4px; background: var(--warm-100); padding: 4px; border-radius: var(--radius); }
+  .view-tab { padding: 7px 18px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; border: none; background: transparent; color: var(--warm-500); font-family: 'DM Sans', sans-serif; transition: all 0.2s ease; }
+  .view-tab:hover { color: var(--warm-700); }
+  .view-tab.active { background: #fff; color: var(--teal-700); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+  /* ==================== STAT CARDS ==================== */
+  .stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: #fff; border-radius: var(--radius-lg); padding: 20px 24px; box-shadow: var(--shadow-card); position: relative; overflow: hidden; cursor: pointer; transition: all 0.2s ease; }
+  .stat-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-elevated); }
+  .stat-card .stat-icon { width: 40px; height: 40px; border-radius: var(--radius); display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; }
+  .stat-card .stat-value { font-family: 'DM Serif Display', Georgia, serif; font-size: 28px; font-weight: 400; line-height: 1; }
+  .stat-card .stat-label { font-size: 12px; color: var(--warm-500); margin-top: 4px; font-weight: 500; }
+  .stat-card .stat-ribbon { position: absolute; top: 0; right: 0; padding: 3px 28px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; transform: translate(8px, -1px) rotate(12deg); }
+
+  /* ==================== DRUG SEARCH & SELECTOR ==================== */
+  .drug-search-wrap { position: relative; }
+  .drug-search-input { width: 100%; padding: 11px 16px 11px 42px; border: 1.5px solid var(--warm-200); border-radius: var(--radius); font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--warm-900); transition: all 0.2s ease; background: #fff; outline: none; }
+  .drug-search-input:focus { border-color: var(--teal-500); box-shadow: 0 0 0 3px rgba(20,184,166,0.1); }
+  .drug-search-input::placeholder { color: var(--warm-300); }
+  .drug-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); font-size: 16px; color: var(--warm-300); pointer-events: none; }
+  .drug-search-hint { font-size: 11px; color: var(--warm-400); margin-top: 6px; margin-left: 4px; }
+  .drug-search-hint kbd { padding: 1px 6px; background: var(--warm-100); border: 1px solid var(--warm-200); border-radius: 3px; font-size: 10px; font-family: 'DM Sans', monospace; font-weight: 500; }
+
+  .drug-results { position: absolute; top: calc(100% + 4px); left: 0; right: 0; z-index: 20; background: #fff; border: 1.5px solid var(--warm-200); border-radius: var(--radius-lg); box-shadow: var(--shadow-dialog); max-height: 400px; overflow-y: auto; display: none; }
+  .drug-results.show { display: block; animation: dropdownIn 0.15s ease-out; }
+  @keyframes dropdownIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  .drug-result-item { display: flex; align-items: center; gap: 14px; padding: 14px 18px; cursor: pointer; transition: all 0.12s ease; border-bottom: 1px solid var(--warm-100); position: relative; }
+  .drug-result-item:last-child { border-bottom: none; }
+  .drug-result-item:hover { background: var(--teal-50); }
+  .drug-result-item.severe { background: linear-gradient(135deg, var(--red-50), #fff5f5); cursor: not-allowed; }
+  .drug-result-item.severe::after { content: '🚫 禁止使用'; position: absolute; right: 18px; font-size: 11px; font-weight: 700; color: var(--coral); }
+  .drug-result-item.moderate { background: linear-gradient(135deg, var(--orange-50), #fffcf5); }
+  .drug-result-item.compatible { background: linear-gradient(135deg, var(--yellow-50), #fffef5); }
+  .drug-result-main { flex: 1; min-width: 0; }
+  .drug-result-name { font-size: 14px; font-weight: 600; color: var(--warm-900); display: flex; align-items: center; gap: 8px; }
+  .drug-result-sub { font-size: 12px; color: var(--warm-500); margin-top: 3px; }
+  .drug-result-meta { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .drug-result-price { font-size: 14px; font-weight: 600; color: var(--teal-700); }
+  .drug-result-unit { font-size: 11px; color: var(--warm-400); }
+
+  .insurance-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; letter-spacing: 0.02em; flex-shrink: 0; }
+  .insurance-A { background: var(--green-100); color: #15803d; }
+  .insurance-B { background: var(--blue-50); color: #1d4ed8; }
+  .insurance-C { background: var(--amber-100); color: #b45309; }
+  .insurance-self { background: var(--warm-100); color: var(--warm-500); }
+
+  .allergy-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .allergy-badge.severe { background: var(--red-100); color: var(--coral); }
+  .allergy-badge.moderate { background: var(--orange-100); color: var(--orange-500); }
+  .allergy-badge.compatible { background: var(--yellow-100); color: #a16207; }
+  .allergy-dot { width: 5px; height: 5px; border-radius: 50%; }
+  .allergy-dot.severe { background: var(--coral); }
+  .allergy-dot.moderate { background: var(--orange-500); }
+  .allergy-dot.compatible { background: var(--yellow-500); }
+
+  /* ==================== SELECTED DRUG ROWS ==================== */
+  .selected-drugs-wrap { margin-top: 20px; }
+  .selected-drugs-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+  .selected-drugs-header h4 { font-family: 'DM Serif Display', Georgia, serif; font-size: 15px; color: var(--warm-700); }
+  .drug-count-badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: var(--teal-50); color: var(--teal-700); }
+  .drug-row { display: grid; grid-template-columns: 1.8fr 0.9fr 1fr 0.7fr 40px; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius); background: var(--warm-50); margin-bottom: 8px; border: 1.5px solid var(--warm-100); transition: all 0.2s ease; }
+  .drug-row:last-child { margin-bottom: 0; }
+  .drug-row.allergy-severe { background: linear-gradient(135deg, var(--red-50), #fff5f5); border-color: var(--red-100); }
+  .drug-row.allergy-moderate { background: linear-gradient(135deg, var(--orange-50), #fffcf5); border-color: #fed7aa; }
+  .drug-row.allergy-compatible { background: linear-gradient(135deg, var(--yellow-50), #fffef5); border-color: #fef08a; }
+  .drug-row:hover:not(.allergy-severe) { border-color: var(--warm-300); }
+  .drug-row-name { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .drug-row-name span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .drug-row input, .drug-row select { padding: 8px 10px; border: 1.5px solid var(--warm-200); border-radius: var(--radius-sm); font-size: 12px; font-family: 'DM Sans', sans-serif; color: var(--warm-900); width: 100%; transition: border-color 0.15s; outline: none; background: #fff; }
+  .drug-row input:focus, .drug-row select:focus { border-color: var(--teal-500); }
+  .drug-row-remove { width: 30px; height: 30px; border-radius: var(--radius-sm); border: 1px solid var(--warm-200); background: #fff; color: var(--warm-400); cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all 0.15s; padding: 0; line-height: 1; }
+  .drug-row-remove:hover { background: var(--coral-50); border-color: var(--coral); color: var(--coral); }
+
+  .add-drug-btn { margin-top: 12px; padding: 10px 16px; border: 1.5px dashed var(--warm-200); border-radius: var(--radius); background: var(--warm-50); color: var(--teal-700); font-size: 13px; font-weight: 500; cursor: pointer; width: 100%; text-align: center; transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+  .add-drug-btn:hover { border-color: var(--teal-500); background: var(--teal-50); }
+
+  /* ==================== ALLERGY SUMMARY BAR ==================== */
+  .allergy-summary { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; border-radius: var(--radius-lg); margin-bottom: 20px; border: 1.5px solid; transition: all 0.3s ease; }
+  .allergy-summary.severe { background: linear-gradient(135deg, var(--red-50), #fff5f5); border-color: var(--red-100); }
+  .allergy-summary.moderate { background: linear-gradient(135deg, var(--orange-50), #fffcf5); border-color: #fed7aa; }
+  .allergy-summary.compatible { background: linear-gradient(135deg, var(--yellow-50), #fffef5); border-color: #fef08a; }
+  .allergy-summary-icon { font-size: 24px; flex-shrink: 0; line-height: 1; }
+  .allergy-summary-body { flex: 1; }
+  .allergy-summary-title { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .allergy-summary-title.severe { color: var(--coral); }
+  .allergy-summary-title.moderate { color: var(--orange-500); }
+  .allergy-summary-title.compatible { color: #a16207; }
+  .allergy-summary-detail { font-size: 12px; color: var(--warm-700); line-height: 1.7; }
+  .allergy-summary-detail strong { color: var(--warm-900); }
+
+  /* ==================== ALERT PANELS ==================== */
+  .alert-panel { border-radius: var(--radius-lg); padding: 18px 22px; margin-bottom: 16px; }
+  .alert-panel.critical { background: linear-gradient(135deg, var(--red-50), #fff5f5); border: 1.5px solid var(--red-100); }
+  .alert-panel.warning { background: linear-gradient(135deg, var(--orange-50), #fffcf5); border: 1.5px solid #fed7aa; }
+  .alert-panel.info { background: linear-gradient(135deg, var(--teal-50), #f5fffe); border: 1.5px solid var(--teal-100); }
+  .alert-panel-header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .alert-panel-header h4 { font-size: 14px; font-weight: 700; }
+  .alert-panel-header h4.critical { color: var(--coral); }
+  .alert-panel-header h4.warning { color: var(--orange-500); }
+  .alert-panel-header h4.info { color: var(--teal-700); }
+  .alert-panel-icon { font-size: 20px; }
+  .alert-panel-body { font-size: 12px; color: var(--warm-700); line-height: 1.7; }
+  .alert-panel-body strong { color: var(--warm-900); }
+  .alert-panel-actions { margin-top: 14px; display: flex; gap: 8px; }
+
+  /* ==================== INFO GRID ==================== */
+  .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 24px; }
+  .info-item { display: flex; gap: 8px; padding: 4px 0; }
+  .info-label { font-size: 11px; color: var(--warm-400); font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; white-space: nowrap; min-width: 55px; }
+  .info-value { font-size: 13px; font-weight: 500; color: var(--warm-900); }
+  .text-mono { font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', monospace; font-size: 12px; font-weight: 500; }
+
+  /* ==================== INTERACTION TABLE ==================== */
+  .interaction-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .interaction-table th { text-align: left; padding: 10px 14px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--warm-400); border-bottom: 2px solid var(--warm-100); }
+  .interaction-table td { padding: 11px 14px; border-bottom: 1px solid var(--warm-100); vertical-align: top; }
+  .interaction-table tr:last-child td { border-bottom: none; }
+  .interaction-row { transition: background 0.15s; }
+  .interaction-row:hover { background: var(--warm-50); }
+
+  .severity-tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+  .severity-tag.high { background: var(--red-100); color: var(--coral); }
+  .severity-tag.medium { background: var(--orange-100); color: var(--orange-500); }
+  .severity-tag.low { background: var(--yellow-100); color: #a16207; }
+  .severity-tag.none { background: var(--green-100); color: #15803d; }
+
+  /* ==================== QUEUE LIST ==================== */
+  .queue-list { }
+  .queue-item { display: flex; align-items: center; gap: 16px; padding: 16px 20px; background: #fff; border-radius: var(--radius); margin-bottom: 8px; border: 1px solid var(--warm-100); cursor: pointer; transition: all 0.2s ease; }
+  .queue-item:hover { border-color: var(--teal-200); box-shadow: 0 2px 8px rgba(15,118,110,0.06); transform: translateX(2px); }
+  .queue-priority { width: 4px; height: 48px; border-radius: 2px; flex-shrink: 0; }
+  .queue-priority.urgent { background: var(--coral); }
+  .queue-priority.normal { background: var(--teal-500); }
+  .queue-info { flex: 1; min-width: 0; }
+  .queue-info-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .queue-info-meta { font-size: 12px; color: var(--warm-500); margin-top: 4px; }
+  .queue-status-tag { padding: 4px 14px; border-radius: 20px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .queue-status-tag.waiting { background: var(--teal-50); color: var(--teal-700); }
+  .queue-status-tag.late { background: var(--red-50); color: var(--coral); }
+
+  /* ==================== BATCH SELECTION ==================== */
+  .drug-verify-section { margin-bottom: 24px; }
+  .drug-verify-section:last-child { margin-bottom: 0; }
+  .drug-verify-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--warm-100); }
+  .drug-verify-name { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 10px; }
+  .drug-verify-meta { font-size: 12px; color: var(--warm-500); }
+  .batch-list { }
+  .batch-row { display: grid; grid-template-columns: 2fr 0.9fr 0.8fr 0.9fr 40px; align-items: center; gap: 12px; padding: 14px 16px; border: 2px solid var(--warm-100); border-radius: var(--radius); margin-bottom: 8px; cursor: pointer; transition: all 0.15s ease; position: relative; background: #fff; }
+  .batch-row:hover { border-color: var(--teal-200); background: #fafffe; }
+  .batch-row.selected { border-color: var(--teal-500); background: linear-gradient(135deg, var(--teal-50), #f5fffe); box-shadow: 0 0 0 1px var(--teal-500); }
+  .batch-row.fifo-recommended { border-style: dashed; border-color: var(--teal-500); }
+  .batch-row.fifo-recommended::before { content: 'FIFO 推荐'; position: absolute; top: -10px; left: 16px; font-size: 10px; font-weight: 700; color: var(--teal-700); background: var(--teal-100); padding: 2px 10px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.03em; }
+  .batch-field-label { font-size: 10px; color: var(--warm-400); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 600; margin-bottom: 3px; }
+  .batch-field-value { font-size: 13px; font-weight: 600; color: var(--warm-900); }
+  .batch-field-value.warn { color: var(--orange-500); }
+  .batch-check { width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--warm-200); display: flex; align-items: center; justify-content: center; font-size: 14px; color: transparent; transition: all 0.15s; }
+  .batch-row.selected .batch-check { background: var(--teal-500); border-color: var(--teal-500); color: #fff; }
+
+  /* ==================== INVENTORY ALERT ==================== */
+  .inventory-alert { display: flex; align-items: center; gap: 10px; padding: 11px 16px; border-radius: var(--radius); margin-bottom: 12px; font-size: 12px; font-weight: 500; }
+  .inventory-alert.low { background: var(--orange-50); color: #c2410c; border: 1px solid #fed7aa; }
+  .inventory-alert.expired { background: var(--red-50); color: var(--coral); border: 1px solid var(--red-100); }
+
+  /* ==================== MODALS ==================== */
+  .modal-overlay { display: none; position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,0.35); align-items: center; justify-content: center; }
+  .modal-overlay.show { display: flex; animation: fadeIn 0.2s ease-out; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal-box { background: #fff; border-radius: var(--radius-xl); padding: 28px; width: 420px; box-shadow: var(--shadow-dialog); animation: modalIn 0.25s ease-out; }
+  @keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(8px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+  .modal-box h3 { font-family: 'DM Serif Display', Georgia, serif; font-size: 18px; margin-bottom: 6px; }
+  .modal-subtitle { font-size: 12px; color: var(--warm-500); margin-bottom: 20px; }
+  .modal-body { margin-bottom: 20px; }
+  .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 11px; font-weight: 600; color: var(--warm-700); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .form-group label .required { color: var(--coral); }
+  .form-group input { width: 100%; padding: 10px 14px; border: 1.5px solid var(--warm-200); border-radius: var(--radius); font-size: 13px; font-family: 'DM Sans', sans-serif; outline: none; transition: border-color 0.15s; }
+  .form-group input:focus { border-color: var(--teal-500); }
+
+  /* ==================== CONTENT HASH DISPLAY ==================== */
+  .hash-display { background: var(--warm-50); border: 1.5px solid var(--warm-200); border-radius: var(--radius); padding: 14px 16px; font-family: 'SF Mono', monospace; font-size: 11px; color: var(--warm-700); word-break: break-all; line-height: 1.6; margin-bottom: 16px; }
+  .hash-display .hash-label { font-size: 10px; font-weight: 600; color: var(--warm-400); text-transform: uppercase; letter-spacing: 0.05em; display: block; margin-bottom: 6px; }
+  .hash-display .hash-value { color: var(--teal-700); font-weight: 600; }
+
+  /* ==================== EMPTY STATE ==================== */
+  .empty-state { text-align: center; padding: 56px 20px; }
+  .empty-state-icon { font-size: 52px; margin-bottom: 16px; opacity: 0.25; }
+  .empty-state h4 { font-family: 'DM Serif Display', Georgia, serif; font-size: 18px; color: var(--warm-400); margin-bottom: 6px; }
+  .empty-state p { font-size: 13px; color: var(--warm-300); }
+
+  /* ==================== ANIMATIONS ==================== */
+  @keyframes slideIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  .card { animation: slideIn 0.35s ease-out both; }
+  .card:nth-child(2) { animation-delay: 0.04s; }
+  .card:nth-child(3) { animation-delay: 0.08s; }
+  .card:nth-child(4) { animation-delay: 0.12s; }
+  .stat-card { animation: slideIn 0.35s ease-out both; }
+  .stat-card:nth-child(2) { animation-delay: 0.06s; }
+  .stat-card:nth-child(3) { animation-delay: 0.10s; }
+  .stat-card:nth-child(4) { animation-delay: 0.14s; }
+
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+  .pulse-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--coral); animation: pulse 2s infinite; display: inline-block; margin-right: 4px; }
+
+  @keyframes shake { 0%, 100% { transform: translateX(0); } 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-4px); } 80% { transform: translateX(4px); } }
+  .shake { animation: shake 0.4s ease-out; }
+
+  @keyframes highlightRow { 0% { background: var(--teal-100); } 100% { background: transparent; } }
+  .highlight-row { animation: highlightRow 1.5s ease-out; }
+
+  /* ==================== HELPERS ==================== */
+  .text-muted { color: var(--warm-500); }
+  .text-xs { font-size: 11px; }
+  .text-sm { font-size: 12px; }
+  .mt-1 { margin-top: 4px; }
+  .mt-2 { margin-top: 8px; }
+  .mt-3 { margin-top: 12px; }
+  .mt-4 { margin-top: 16px; }
+  .mb-2 { margin-bottom: 8px; }
+  .mb-3 { margin-bottom: 12px; }
+  .gap-2 { gap: 8px; }
+  .gap-3 { gap: 12px; }
+  .flex { display: flex; }
+  .flex-center { display: flex; align-items: center; }
+  .flex-between { display: flex; align-items: center; justify-content: space-between; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; flex-shrink: 0; }
+  .tag-teal { background: var(--teal-50); color: var(--teal-700); }
+  .tag-coral { background: var(--coral-50); color: var(--coral); }
+</style>
+</head>
+<body>
+
+<!-- ==================== SIDEBAR ==================== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">Rx<span>Flow</span></div>
+  <span class="sidebar-role-tag" id="sidebarRoleTag">💊 药剂师</span>
+  <nav id="sidebarNav"></nav>
+  <div class="sidebar-user" id="sidebarUser">
+    <div class="avatar" id="sidebarAvatar">陈</div>
+    <div><div class="name" id="sidebarName">陈药师</div><div class="role" id="sidebarRole">门诊药房</div></div>
+  </div>
+</aside>
+
+<!-- ==================== MAIN ==================== -->
+<div class="main">
+  <header class="header">
+    <div class="header-left">
+      <h1 class="page-title" id="viewTitle">药品选择器</h1>
+    </div>
+    <div class="header-right">
+      <div class="view-tabs" id="viewTabs">
+        <button class="view-tab active" data-view="selector">药品选择器</button>
+        <button class="view-tab" data-view="detail">处方详情增强</button>
+        <button class="view-tab" data-view="dashboard">药剂师工作台</button>
+        <button class="view-tab" data-view="dispensing">配药页</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="content">
+
+    <!-- ==================== VIEW 1: DRUG SELECTOR ==================== -->
+    <div id="view-selector" class="view-panel">
+
+      <!-- Allergy Summary -->
+      <div class="allergy-summary severe" id="allergySummary">
+        <span class="allergy-summary-icon">⚠️</span>
+        <div class="allergy-summary-body">
+          <div class="allergy-summary-title severe" id="allergySummaryTitle">过敏风险警告 — 2 个药品存在风险</div>
+          <div class="allergy-summary-detail" id="allergySummaryDetail"></div>
+        </div>
+        <button class="btn btn-sm btn-outline" onclick="showAllergyDetail()">查看详情 →</button>
+      </div>
+
+      <!-- Drug Selector Card -->
+      <div class="card">
+        <div class="section-header">
+          <h3>选择药品</h3>
+          <div class="spacer"></div>
+          <span class="drug-count-badge" id="drugCountBadge">已选 2 种</span>
+        </div>
+
+        <div class="drug-search-wrap" id="searchWrap">
+          <span class="drug-search-icon">🔍</span>
+          <input class="drug-search-input" id="drugSearch" placeholder="搜索药品名称、拼音首字母（如 amxl → 阿莫西林）..." autocomplete="off">
+          <div class="drug-search-hint">支持拼音首字母搜索：<kbd>amxl</kbd> → 阿莫西林，<kbd>blf</kbd> → 布洛芬，<kbd>xbdp</kbd> → 硝苯地平</div>
+          <div class="drug-results" id="drugResults"></div>
+        </div>
+
+        <div class="selected-drugs-wrap" id="selectedDrugsWrap">
+          <div class="selected-drugs-header">
+            <h4>已选药品</h4>
+          </div>
+          <div id="selectedDrugs"></div>
+          <button class="add-drug-btn" onclick="focusSearch()">+ 添加药品</button>
+        </div>
+      </div>
+
+      <!-- Submit Bar -->
+      <div style="display:flex;gap:12px;justify-content:flex-end;">
+        <button class="btn btn-outline">保存草稿</button>
+        <button class="btn btn-primary btn-lg" id="submitBtn" disabled>提交审核 — 存在严重过敏风险，需联系医生确认</button>
+      </div>
+    </div>
+
+    <!-- ==================== VIEW 2: PRESCRIPTION DETAIL ENHANCED ==================== -->
+    <div id="view-detail" class="view-panel" style="display:none;">
+
+      <!-- Critical Alert -->
+      <div class="alert-panel critical">
+        <div class="alert-panel-header">
+          <span class="alert-panel-icon">🚨</span>
+          <h4 class="critical">严重过敏风险 — 需医生手动确认</h4>
+        </div>
+        <div class="alert-panel-body">
+          该处方中 <strong>阿莫西林胶囊</strong> 的活性成分包含 <strong>青霉素</strong>，患者赵建国（ID:1）有<strong>青霉素重度过敏史（过敏性休克）</strong>。<br>
+          根据安全策略，严重过敏药品<strong>禁止直接使用</strong>。如临床确需使用，须由医生手动签字确认并记录原因。
+        </div>
+        <div class="alert-panel-actions">
+          <button class="btn btn-sm btn-outline" onclick="alert('替代药品建议：\n\n1. 克拉霉素片 250mg — 大环内酯类，与青霉素无交叉过敏\n2. 阿奇霉素片 250mg — 大环内酯类\n3. 多西环素片 100mg — 四环素类\n\n请与医生协商选择。')">查看替代药品建议</button>
+          <button class="btn btn-sm btn-danger" onclick="document.getElementById('signModal').classList.add('show')">确认风险并签名继续</button>
+        </div>
+      </div>
+
+      <!-- Moderate Alert -->
+      <div class="alert-panel warning">
+        <div class="alert-panel-header">
+          <span class="alert-panel-icon">⚠️</span>
+          <h4 class="warning">中度过敏提示</h4>
+        </div>
+        <div class="alert-panel-body">
+          患者对 <strong>头孢菌素</strong> 有中度过敏史（皮疹），当前处方含 <strong>头孢拉定胶囊</strong>。建议用药期间密切观察，如有不适立即停药。
+        </div>
+      </div>
+
+      <!-- Drug Interaction Panel -->
+      <div class="card">
+        <div class="section-header">
+          <h3>药品相互作用检查</h3>
+          <div class="spacer"></div>
+          <span class="text-sm text-muted">共检测 4 组组合</span>
+        </div>
+        <table class="interaction-table">
+          <thead>
+            <tr><th>药品 A</th><th>药品 B</th><th>严重程度</th><th>临床建议</th></tr>
+          </thead>
+          <tbody>
+            <tr class="interaction-row">
+              <td>阿莫西林胶囊</td>
+              <td>布洛芬缓释胶囊</td>
+              <td><span class="severity-tag low">低风险</span></td>
+              <td>布洛芬可能轻微增加阿莫西林血药浓度，一般无需调整剂量</td>
+            </tr>
+            <tr class="interaction-row">
+              <td>阿莫西林胶囊</td>
+              <td>硝苯地平控释片</td>
+              <td><span class="severity-tag none">无已知</span></td>
+              <td>未发现临床显著相互作用</td>
+            </tr>
+            <tr class="interaction-row">
+              <td>布洛芬缓释胶囊</td>
+              <td>硝苯地平控释片</td>
+              <td><span class="severity-tag low">低风险</span></td>
+              <td>NSAIDs 可能减弱降压药效果，建议监测血压</td>
+            </tr>
+            <tr class="interaction-row">
+              <td>头孢拉定胶囊</td>
+              <td>布洛芬缓释胶囊</td>
+              <td><span class="severity-tag none">无已知</span></td>
+              <td>未发现临床显著相互作用</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Prescription Info -->
+      <div class="card">
+        <div class="section-header">
+          <h3>处方信息</h3>
+          <span class="tag tag-teal">状态：待审核</span>
+        </div>
+        <div class="info-grid">
+          <div class="info-item"><span class="info-label">处方号</span><span class="info-value text-mono">PRS-20260603-000001</span></div>
+          <div class="info-item"><span class="info-label">患者</span><span class="info-value">赵建国 · 男 · 62岁</span></div>
+          <div class="info-item"><span class="info-label">诊断</span><span class="info-value">高血压病 2 级，急性咽炎</span></div>
+          <div class="info-item"><span class="info-label">创建者</span><span class="info-value">李助理 · 2026-06-03 09:15</span></div>
+          <div class="info-item"><span class="info-label">处方有效期</span><span class="info-value" style="color:var(--orange-500);">审核通过后 3 天内有效</span></div>
+          <div class="info-item"><span class="info-label">医保分类</span><span class="info-value"><span class="insurance-tag insurance-A" style="margin-right:4px;">甲×3</span><span class="insurance-tag insurance-B">乙×1</span></span></div>
+        </div>
+        <div class="flex gap-2 mt-4">
+          <button class="btn btn-primary" onclick="document.getElementById('signModal').classList.add('show')">审核通过（需签名确认）</button>
+          <button class="btn btn-outline">驳回</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== VIEW 3: PHARMACIST DASHBOARD ==================== -->
+    <div id="view-dashboard" class="view-panel" style="display:none;">
+
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--teal-50);">📋</div>
+          <div class="stat-value">12</div>
+          <div class="stat-label">待配药处方</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--green-50);">✅</div>
+          <div class="stat-value">28</div>
+          <div class="stat-label">今日已完成配药</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--orange-50);">📦</div>
+          <div class="stat-value">3</div>
+          <div class="stat-label">库存预警药品</div>
+          <div class="stat-ribbon" style="background:var(--orange-500);color:#fff;">需补货</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background:var(--red-50);">⏱️</div>
+          <div class="stat-value">2</div>
+          <div class="stat-label"><span class="pulse-dot"></span>超时未配药</div>
+          <div class="stat-ribbon" style="background:var(--coral);color:#fff;">紧急</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="section-header">
+          <h3>待配药队列</h3>
+          <div class="spacer"></div>
+          <div class="flex gap-2">
+            <button class="btn btn-sm btn-outline" id="sortTimeBtn" onclick="sortQueue('time')">按时间 ↓</button>
+            <button class="btn btn-sm btn-outline" id="sortUrgentBtn" onclick="sortQueue('urgent')">紧急优先 ↓</button>
+          </div>
+        </div>
+        <div class="queue-list" id="queueList"></div>
+      </div>
+    </div>
+
+    <!-- ==================== VIEW 4: DISPENSING VIEW ==================== -->
+    <div id="view-dispensing" class="view-panel" style="display:none;">
+
+      <!-- Prescription Header -->
+      <div class="card">
+        <div class="flex-between mb-3">
+          <div class="flex-center gap-3">
+            <span class="text-mono" style="font-size:14px;font-weight:600;">PRS-20260603-000003</span>
+            <span class="tag tag-teal">已审核 · 待配药</span>
+          </div>
+          <span class="text-sm text-muted">审核时间：2026-06-04 09:30 · 处方有效期至 2026-06-07 09:30</span>
+        </div>
+        <div class="info-grid">
+          <div class="info-item"><span class="info-label">患者</span><span class="info-value">赵建国 · 男 · 62岁</span></div>
+          <div class="info-item"><span class="info-label">诊断</span><span class="info-value">高血脂症，总胆固醇 6.2mmol/L</span></div>
+          <div class="info-item"><span class="info-label">医生</span><span class="info-value">张医生</span></div>
+          <div class="info-item"><span class="info-label">剩余有效期</span><span class="info-value" style="color:var(--teal-700);">2 天 23 小时</span></div>
+        </div>
+        <div class="alert-panel info" style="marginTop:16px;marginBottom:0;">
+          <div class="alert-panel-header">
+            <span class="alert-panel-icon">✅</span>
+            <h4 class="info">过敏检查通过</h4>
+          </div>
+          <div class="alert-panel-body">患者有青霉素重度过敏史，但本处方<strong>不含青霉素类药品</strong>，可以安全配药。</div>
+        </div>
+      </div>
+
+      <!-- Drug Verification & Batch Selection -->
+      <div class="card">
+        <div class="section-header">
+          <h3>药品核对与批号选择</h3>
+          <div class="spacer"></div>
+          <span class="text-sm text-muted">共 2 种药品</span>
+        </div>
+        <div id="batchSelectionArea"></div>
+        <div id="inventoryAlerts"></div>
+      </div>
+
+      <!-- Pharmacist Confirmation -->
+      <div class="card">
+        <h3>药剂师确认</h3>
+        <div class="form-group">
+          <label>药剂师备注（选填）</label>
+          <textarea id="pharmacistNote" style="width:100%;padding:11px 14px;border:1.5px solid var(--warm-200);border-radius:var(--radius);font-family:'DM Sans',sans-serif;font-size:13px;min-height:72px;resize:vertical;outline:none;" placeholder="如：已核对药品批号及效期，与处方一致" onfocus="this.style.borderColor='var(--teal-500)'" onblur="this.style.borderColor='var(--warm-200)'"></textarea>
+        </div>
+        <div class="flex-between mt-4">
+          <div class="text-sm text-muted">
+            选择 FIFO 推荐批次确保效期最优。确认后将生成 QR 交接码并触发签名流程。
+          </div>
+          <div class="flex gap-2">
+            <button class="btn btn-outline">暂存</button>
+            <button class="btn btn-primary btn-lg" id="confirmDispenseBtn" onclick="document.getElementById('signModal').classList.add('show')">✓ 确认配药完成（需签名）</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ==================== SIGNATURE MODAL ==================== -->
+<div class="modal-overlay" id="signModal">
+  <div class="modal-box">
+    <h3>电子签名确认</h3>
+    <div class="modal-subtitle">根据《电子签名法》，需通过密码二次确认完成可靠电子签名</div>
+    <div class="modal-body">
+      <div class="hash-display">
+        <span class="hash-label">内容摘要 SHA-256</span>
+        <span class="hash-value" id="contentHash">e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</span>
+      </div>
+      <div class="flex gap-2 mb-3" style="font-size:12px;color:var(--warm-700);">
+        <span>📋 处方号：<strong>PRS-20260603-000003</strong></span>
+        <span>👤 签名人：<strong id="signerName">陈药师</strong></span>
+      </div>
+      <div class="form-group">
+        <label for="signPassword">请输入登录密码以完成签名 <span class="required">*</span></label>
+        <input type="password" id="signPassword" placeholder="输入密码确认操作..." autocomplete="off">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeSignModal()">取消</button>
+      <button class="btn btn-primary" id="confirmSignBtn" onclick="performSign()">确认签名</button>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== ALLERGY DETAIL MODAL ==================== -->
+<div class="modal-overlay" id="allergyDetailModal">
+  <div class="modal-box" style="width:480px;">
+    <h3>过敏风险详情</h3>
+    <div class="modal-subtitle">患者：赵建国（ID:1）· 男 · 62岁</div>
+    <div class="modal-body">
+      <div class="alert-panel critical" style="marginBottom:12px;">
+        <div class="alert-panel-header"><span class="alert-panel-icon">🚨</span><h4 class="critical">重度过敏 — 青霉素</h4></div>
+        <div class="alert-panel-body">患者有<strong>青霉素严重过敏史</strong>（过敏性休克）。<br>涉及药品：<strong>阿莫西林胶囊</strong>（含青霉素成分 0.5g）<br>记录来源：患者自述（migration from allergyHistory）</div>
+      </div>
+      <div class="alert-panel warning">
+        <div class="alert-panel-header"><span class="alert-panel-icon">⚠️</span><h4 class="warning">中度过敏 — 头孢菌素</h4></div>
+        <div class="alert-panel-body">患者有<strong>头孢菌素中度过敏史</strong>（皮疹）。<br>涉及药品：<strong>头孢拉定胶囊</strong>（含头孢菌素成分 0.25g）<br>青霉素与头孢菌素存在交叉过敏风险（约 5-10%）</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="document.getElementById('allergyDetailModal').classList.remove('show')">关闭</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =========================================================================
+// DATA STORE
+// =========================================================================
+const DRUG_DB = [
+  { id:1, name:'硝苯地平控释片', spec:'30mg×7片', maker:'拜耳医药', insurance:'A', price:'32.50', unit:'盒', pinyin:'xbdp', search:'xiaobendiping|xbdp' },
+  { id:2, name:'厄贝沙坦片', spec:'150mg×7片', maker:'赛诺菲', insurance:'A', price:'28.00', unit:'盒', pinyin:'ebst', search:'eibeishatan|ebst' },
+  { id:3, name:'阿托伐他汀钙片', spec:'20mg×7片', maker:'辉瑞制药', insurance:'A', price:'45.80', unit:'盒', pinyin:'atftt', search:'atuofatating|atftt' },
+  { id:4, name:'盐酸二甲双胍片', spec:'0.5g×20片', maker:'中美史克', insurance:'A', price:'12.50', unit:'盒', pinyin:'ysejg', search:'yansuanerjiagua|ysejg' },
+  { id:5, name:'阿莫西林胶囊', spec:'0.5g×24粒', maker:'联邦制药', insurance:'A', price:'15.00', unit:'盒', pinyin:'amxl', search:'amoxilin|amxl', allergy:'severe', allergen:'青霉素' },
+  { id:6, name:'布洛芬缓释胶囊', spec:'0.3g×20粒', maker:'中美史克', insurance:'B', price:'18.50', unit:'盒', pinyin:'blf', search:'buluofen|blf' },
+  { id:7, name:'复方甘草片', spec:'100片/瓶', maker:'国药集团', insurance:'A', price:'8.50', unit:'瓶', pinyin:'ffgcp', search:'fufanggancaopian|ffgcp' },
+  { id:8, name:'头孢拉定胶囊', spec:'0.25g×24粒', maker:'广州白云山', insurance:'A', price:'22.00', unit:'盒', pinyin:'tbld', search:'toubaolading|tbld', allergy:'moderate', allergen:'头孢菌素' },
+  { id:9, name:'缬沙坦胶囊', spec:'80mg×7粒', maker:'诺华制药', insurance:'A', price:'35.00', unit:'盒', pinyin:'xst', search:'xieshatan|xst' },
+  { id:10, name:'阿卡波糖片', spec:'50mg×30片', maker:'拜耳医药', insurance:'A', price:'52.00', unit:'盒', pinyin:'akbt', search:'akabotang|akbt' },
+  { id:11, name:'氯沙坦钾片', spec:'50mg×7片', maker:'默沙东', insurance:'A', price:'38.00', unit:'盒', pinyin:'lstj', search:'lvshantanjia|lstj' },
+  { id:12, name:'氢氯噻嗪片', spec:'25mg×100片', maker:'上海医药', insurance:'A', price:'5.50', unit:'瓶', pinyin:'qlsq', search:'qinglvsaiqin|qlsq' },
+  { id:13, name:'瑞舒伐他汀钙片', spec:'10mg×7片', maker:'阿斯利康', insurance:'B', price:'49.00', unit:'盒', pinyin:'rsftt', search:'ruishufatating|rsftt' },
+  { id:14, name:'氨氯地平片', spec:'5mg×7片', maker:'辉瑞制药', insurance:'A', price:'26.00', unit:'盒', pinyin:'aldp', search:'anlvdiping|aldp' },
+  { id:15, name:'奥美拉唑肠溶胶囊', spec:'20mg×14粒', maker:'阿斯利康', insurance:'A', price:'36.00', unit:'盒', pinyin:'amlz', search:'aomeilazuo|amlz' },
+  { id:16, name:'盐酸氨溴索片', spec:'30mg×20片', maker:'勃林格殷格翰', insurance:'B', price:'22.00', unit:'盒', pinyin:'ysaxs', search:'yansuananxiusuo|ysaxs' },
+  { id:17, name:'氯雷他定片', spec:'10mg×6片', maker:'先灵葆雅', insurance:'B', price:'19.00', unit:'盒', pinyin:'lltd', search:'lvreitading|lltd' },
+  { id:18, name:'蒙脱石散', spec:'3g×10袋', maker:'益普生', insurance:'B', price:'16.00', unit:'盒', pinyin:'mtss', search:'mengtuoshisan|mtss' },
+  { id:19, name:'左氧氟沙星片', spec:'0.5g×10片', maker:'第一三共', insurance:'A', price:'42.00', unit:'盒', pinyin:'zyfsx', search:'zuoyangfushaxing|zyfsx' },
+  { id:20, name:'盐酸曲马多缓释片', spec:'100mg×10片', maker:'格兰泰', insurance:'C', price:'38.00', unit:'盒', pinyin:'ysqmd', search:'yansuanqumaduo|ysqmd' },
+  { id:21, name:'连花清瘟胶囊', spec:'0.35g×36粒', maker:'以岭药业', insurance:'B', price:'22.00', unit:'盒', pinyin:'lhqw', search:'lianhuaqingwen|lhqw' },
+  { id:22, name:'硝酸甘油片', spec:'0.5mg×100片', maker:'山东信谊', insurance:'A', price:'15.00', unit:'瓶', pinyin:'xsgy', search:'xiaosuanganyou|xsgy' },
+  { id:23, name:'氯吡格雷片', spec:'75mg×7片', maker:'赛诺菲', insurance:'B', price:'72.00', unit:'盒', pinyin:'lbgl', search:'lvbigelie|lbgl' },
+  { id:24, name:'华法林钠片', spec:'2.5mg×60片', maker:'芬兰奥利安', insurance:'A', price:'38.00', unit:'瓶', pinyin:'hfln', search:'huafalinna|hfln' },
+  { id:25, name:'复方丹参滴丸', spec:'27mg×180丸', maker:'天士力', insurance:'A', price:'32.00', unit:'瓶', pinyin:'ffds', search:'fufangdanshen|ffds' },
+];
+
+const BATCH_DB = [
+  { id:1, drugId:3, batchNo:'B20260603001', qty:180, price:'35.00', expire:'2027-06-03', received:'2026-06-03' },
+  { id:2, drugId:3, batchNo:'B20260415001', qty:5, price:'34.00', expire:'2026-08-15', received:'2026-04-15' },
+  { id:3, drugId:3, batchNo:'B20260120001', qty:45, price:'33.00', expire:'2026-07-15', received:'2026-01-20' },
+  { id:4, drugId:2, batchNo:'B20260515001', qty:150, price:'20.00', expire:'2027-05-15', received:'2026-05-15' },
+  { id:5, drugId:2, batchNo:'B20260301001', qty:80, price:'19.50', expire:'2026-12-01', received:'2026-03-01' },
+];
+
+const PATIENT_ALLERGIES = {
+  'penicillin': { severity:'severe', reaction:'过敏性休克', allergen:'青霉素' },
+  'cephalosporin': { severity:'moderate', reaction:'皮疹', allergen:'头孢菌素' },
+};
+
+const QUEUE_DATA = [
+  { id:'PRS-003', name:'阿托伐他汀钙片', patient:'赵建国', diagnosis:'高血脂症', approvedAt:'2026-06-04 09:30', waitMin:125, urgent:true },
+  { id:'PRS-001', name:'氯沙坦钾片 + 氢氯噻嗪片', patient:'李奶奶', diagnosis:'高血压', approvedAt:'2026-06-04 10:15', waitMin:80, urgent:true },
+  { id:'PRS-002', name:'硝苯地平控释片', patient:'赵建国', diagnosis:'高血压', approvedAt:'2026-06-04 10:50', waitMin:45, urgent:false },
+  { id:'PRS-004', name:'二甲双胍片 + 阿卡波糖片', patient:'王小明', diagnosis:'2型糖尿病', approvedAt:'2026-06-04 11:15', waitMin:20, urgent:false },
+  { id:'PRS-005', name:'厄贝沙坦片', patient:'张美华', diagnosis:'高血压', approvedAt:'2026-06-04 11:30', waitMin:5, urgent:false },
+];
+
+let selectedDrugs = [
+  { drugId:1, dosage:'1片', freq:'qd', days:7, allergy:null },
+  { drugId:8, dosage:'1粒', freq:'bid', days:5, allergy:'moderate' },
+];
+let selectedBatches = { 3:1, 2:4 };
+let currentView = 'selector';
+
+// =========================================================================
+// SIDEBAR RENDER
+// =========================================================================
+(function renderSidebar() {
+  const views = [
+    { view:'selector', icon:'💊', label:'药品选择器' },
+    { view:'detail', icon:'📋', label:'处方详情增强' },
+    { view:'dashboard', icon:'📊', label:'药剂师工作台' },
+    { view:'dispensing', icon:'✅', label:'配药页' },
+  ];
+  const menu = [
+    { section:'原型预览', items: views.map(v => ({ icon:v.icon, label:v.label, view:v.view })) },
+  ];
+  document.getElementById('sidebarNav').innerHTML = menu.map(s =>
+    `<div class="nav-section">${s.section}</div>` + s.items.map(i =>
+      `<a class="nav-item${i.view===currentView?' active':''}" data-view="${i.view}" onclick="switchView('${i.view}')">${i.icon} ${i.label}</a>`
+    ).join('')
+  ).join('');
+})();
+
+function updateSidebarActive(view) {
+  document.querySelectorAll('#sidebarNav .nav-item').forEach(el => el.classList.remove('active'));
+  const target = document.querySelector(`#sidebarNav .nav-item[data-view="${view}"]`);
+  if (target) target.classList.add('active');
+}
+
+// =========================================================================
+// VIEW SWITCHING
+// =========================================================================
+function switchView(view) {
+  currentView = view;
+  document.querySelectorAll('.view-panel').forEach(p => p.style.display = 'none');
+  document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('view-' + view).style.display = 'block';
+  const tab = document.querySelector(`.view-tab[data-view="${view}"]`);
+  if (tab) tab.classList.add('active');
+  document.getElementById('viewTitle').textContent = tab ? tab.textContent.trim() : '';
+  updateSidebarActive(view);
+
+  if (view === 'dashboard') renderQueue();
+  if (view === 'dispensing') renderDispensing();
+  if (view === 'selector') updateAllergySummary();
+}
+
+document.querySelectorAll('.view-tab').forEach(tab => {
+  tab.addEventListener('click', () => switchView(tab.dataset.view));
+});
+
+// =========================================================================
+// DRUG SEARCH
+// =========================================================================
+const drugSearch = document.getElementById('drugSearch');
+const drugResults = document.getElementById('drugResults');
+
+function matchDrugs(query) {
+  if (!query || query.trim().length < 1) return DRUG_DB.slice(0, 8);
+  const q = query.toLowerCase().trim();
+  return DRUG_DB.filter(d => {
+    if (d.name.toLowerCase().includes(q)) return true;
+    if (d.search.toLowerCase().includes(q)) return true;
+    if (d.pinyin.toLowerCase().startsWith(q)) return true;
+    if (d.maker.toLowerCase().includes(q)) return true;
+    return false;
+  });
+}
+
+function renderResults(query) {
+  const matches = matchDrugs(query);
+  if (matches.length === 0) {
+    drugResults.innerHTML = '<div style="padding:24px;text-align:center;color:var(--warm-400);">未找到匹配药品</div>';
+  } else {
+    drugResults.innerHTML = matches.map(d => {
+      let cls = '', label = '';
+      if (d.allergy === 'severe') { cls = 'severe'; label = ''; }
+      else if (d.allergy === 'moderate') { cls = 'moderate'; label = `<span class="allergy-badge moderate"><span class="allergy-dot moderate"></span> 中度过敏</span>`; }
+      const isSelected = selectedDrugs.some(s => s.drugId === d.id);
+      const selStyle = isSelected ? 'opacity:0.5;pointer-events:none;' : '';
+      return `
+        <div class="drug-result-item ${cls}" style="${selStyle}" onclick="${d.allergy==='severe'?'':d.allergy==='moderate'?'selectDrug('+d.id+', true)':'selectDrug('+d.id+')'}">
+          <div class="drug-result-main">
+            <div class="drug-result-name">${d.name} ${label}</div>
+            <div class="drug-result-sub">${d.maker} · ${d.spec}${d.allergy==='severe'?' · <span style=color:var(--coral);font-weight:600;>患者对'+d.allergen+'重度过敏</span>':''}${d.allergy==='moderate'?' · <span style=color:var(--orange-500);font-weight:500;>患者对'+d.allergen+'中度过敏</span>':''}</div>
+          </div>
+          <div class="drug-result-meta">
+            <span class="insurance-tag insurance-${d.insurance}">${d.insurance==='A'?'甲':d.insurance==='B'?'乙':'丙'}</span>
+            <span class="drug-result-price">¥${d.price}</span>
+            <span class="drug-result-unit">/${d.unit}</span>
+          </div>
+          ${isSelected ? '<span style="font-size:11px;color:var(--teal-700);font-weight:600;">已添加 ✓</span>' : ''}
+        </div>`;
+    }).join('');
+  }
+  drugResults.classList.add('show');
+}
+
+drugSearch.addEventListener('input', () => renderResults(drugSearch.value));
+drugSearch.addEventListener('focus', () => { renderResults(drugSearch.value); });
+document.addEventListener('click', (e) => {
+  if (!document.getElementById('searchWrap').contains(e.target)) {
+    drugResults.classList.remove('show');
+  }
+});
+
+function focusSearch() {
+  drugSearch.focus();
+  drugSearch.scrollIntoView({ behavior:'smooth', block:'center' });
+  renderResults(drugSearch.value);
+}
+
+// Initial render
+renderResults('');
+
+// =========================================================================
+// DRUG SELECTION
+// =========================================================================
+function selectDrug(drugId, fromModerate) {
+  const drug = DRUG_DB.find(d => d.id === drugId);
+  if (!drug) return;
+  if (selectedDrugs.some(s => s.drugId === drugId)) return;
+
+  if (drug.allergy === 'moderate' && !fromModerate) {
+    if (!confirm(`⚠️ 过敏风险提示\n\n${drug.name} — 患者对${drug.allergen}有中度过敏史。\n\n已知晓风险，仍然添加？`)) return;
+  }
+
+  selectedDrugs.push({ drugId, dosage:'', freq:'qd', days:7, allergy:drug.allergy || null });
+  renderSelectedDrugs();
+  updateAllergySummary();
+  drugResults.classList.remove('show');
+  drugSearch.value = '';
+  renderResults('');
+
+  // Flash the new row
+  setTimeout(() => {
+    const rows = document.querySelectorAll('#selectedDrugs .drug-row');
+    const last = rows[rows.length - 1];
+    if (last) { last.classList.add('highlight-row'); setTimeout(() => last.classList.remove('highlight-row'), 1500); }
+  }, 100);
+}
+
+function removeDrug(index) {
+  if (selectedDrugs.length <= 1) { alert('至少保留一种药品'); return; }
+  selectedDrugs.splice(index, 1);
+  renderSelectedDrugs();
+  updateAllergySummary();
+  renderResults(drugSearch.value);
+}
+
+function renderSelectedDrugs() {
+  const container = document.getElementById('selectedDrugs');
+  const drugCount = document.getElementById('drugCountBadge');
+  drugCount.textContent = '已选 ' + selectedDrugs.length + ' 种';
+
+  container.innerHTML = selectedDrugs.map((s, i) => {
+    const d = DRUG_DB.find(dr => dr.id === s.drugId);
+    if (!d) return '';
+    let rowCls = '';
+    let namePrefix = '';
+    if (s.allergy === 'severe') { rowCls = 'allergy-severe'; namePrefix = '<span class="allergy-badge severe"><span class="allergy-dot severe"></span> 严重过敏</span>'; }
+    else if (s.allergy === 'moderate') { rowCls = 'allergy-moderate'; namePrefix = '<span class="allergy-badge moderate"><span class="allergy-dot moderate"></span> 中度过敏</span>'; }
+
+    const freqOptions = ['qd','bid','tid','qid','qn','prn'].map(f => `<option value="${f}" ${s.freq===f?'selected':''}>${freqLabel(f)}</option>`).join('');
+
+    return `
+      <div class="drug-row ${rowCls}">
+        <div class="drug-row-name">
+          ${namePrefix}
+          <span>${d.name}</span>
+          <span class="insurance-tag insurance-${d.insurance}">${d.insurance==='A'?'甲':d.insurance==='B'?'乙':'丙'}</span>
+          <span class="text-xs text-muted">¥${d.price}/${d.unit}</span>
+        </div>
+        <input type="text" value="${s.dosage}" placeholder="剂量" onchange="updateDrugField(${i},'dosage',this.value)">
+        <select onchange="updateDrugField(${i},'freq',this.value)">${freqOptions}</select>
+        <input type="number" value="${s.days}" placeholder="天数" min="1" max="365" onchange="updateDrugField(${i},'days',parseInt(this.value)||7)">
+        <button class="drug-row-remove" onclick="removeDrug(${i})" title="移除">×</button>
+      </div>`;
+  }).join('');
+
+  // Re-bind combobox changes
+  container.querySelectorAll('select').forEach((sel, idx) => {
+    sel.addEventListener('change', function() { updateDrugField(idx, 'freq', this.value); });
+  });
+}
+
+function updateDrugField(index, field, value) {
+  if (index < selectedDrugs.length) {
+    selectedDrugs[index][field] = value;
+  }
+}
+
+function freqLabel(f) {
+  const map = { qd:'每日1次', bid:'每日2次', tid:'每日3次', qid:'每日4次', qn:'每晚1次', prn:'必要时' };
+  return map[f] || f;
+}
+
+function updateAllergySummary() {
+  const hasSevere = selectedDrugs.some(s => s.allergy === 'severe');
+  const hasModerate = selectedDrugs.some(s => s.allergy === 'moderate');
+  const summary = document.getElementById('allergySummary');
+  const title = document.getElementById('allergySummaryTitle');
+  const detail = document.getElementById('allergySummaryDetail');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (hasSevere || hasModerate) {
+    summary.style.display = 'flex';
+    const sevDrugs = selectedDrugs.filter(s => s.allergy === 'severe').map(s => DRUG_DB.find(d => d.id === s.drugId));
+    const modDrugs = selectedDrugs.filter(s => s.allergy === 'moderate').map(s => DRUG_DB.find(d => d.id === s.drugId));
+
+    if (hasSevere) {
+      summary.className = 'allergy-summary severe';
+      title.className = 'allergy-summary-title severe';
+      title.textContent = '过敏风险警告 — ' + (hasSevere+hasModerate) + ' 个药品存在风险';
+      detail.innerHTML = sevDrugs.map(d => `<strong>${d.name}</strong> — 患者对 <strong>${d.allergen}</strong> 有重度过敏史（过敏性休克）`).join('<br>') +
+        (hasModerate ? '<br>' + modDrugs.map(d => `<strong>${d.name}</strong> — 患者对 <strong>${d.allergen}</strong> 有中度过敏史（皮疹）`).join('<br>') : '');
+      submitBtn.disabled = true;
+      submitBtn.textContent = '提交审核 — 存在严重过敏风险，需联系医生确认';
+    } else {
+      summary.className = 'allergy-summary moderate';
+      title.className = 'allergy-summary-title moderate';
+      title.textContent = '过敏风险提示 — ' + hasModerate + ' 个药品需关注';
+      detail.innerHTML = modDrugs.map(d => `<strong>${d.name}</strong> — 患者对 <strong>${d.allergen}</strong> 有中度过敏史（皮疹）`).join('<br>');
+      submitBtn.disabled = false;
+      submitBtn.textContent = '提交审核（含中度过敏风险）';
+    }
+  } else {
+    summary.style.display = 'none';
+    submitBtn.disabled = false;
+    submitBtn.textContent = '提交审核';
+  }
+}
+
+function showAllergyDetail() {
+  document.getElementById('allergyDetailModal').classList.add('show');
+}
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+});
+
+// =========================================================================
+// SIGNATURE MODAL
+// =========================================================================
+function closeSignModal() {
+  document.getElementById('signModal').classList.remove('show');
+  document.getElementById('signPassword').value = '';
+}
+
+function performSign() {
+  const pw = document.getElementById('signPassword').value;
+  if (!pw) {
+    const input = document.getElementById('signPassword');
+    input.style.borderColor = 'var(--coral)';
+    input.classList.add('shake');
+    setTimeout(() => { input.classList.remove('shake'); input.style.borderColor = ''; }, 400);
+    return;
+  }
+  closeSignModal();
+  alert('✅ 签名成功！\n\nSHA-256 内容摘要已记录\n签名人：陈药师\n时间：' + new Date().toLocaleString() + '\n\n此操作已写入 AuditLog。');
+}
+
+// Generate a random hash for display
+(function updateHash() {
+  const chars = '0123456789abcdef';
+  let hash = '';
+  for (let i = 0; i < 64; i++) hash += chars[Math.floor(Math.random() * 16)];
+  document.getElementById('contentHash').textContent = hash;
+})();
+
+// =========================================================================
+// QUEUE RENDERING (VIEW 3)
+// =========================================================================
+function renderQueue(sortBy) {
+  const list = document.getElementById('queueList');
+  let data = [...QUEUE_DATA];
+  if (sortBy === 'urgent') data.sort((a, b) => (b.urgent ? 1 : 0) - (a.urgent ? 1 : 0) || b.waitMin - a.waitMin);
+  else data.sort((a, b) => b.waitMin - a.waitMin);
+
+  list.innerHTML = data.map(q => `
+    <div class="queue-item" onclick="switchView('dispensing')">
+      <div class="queue-priority ${q.urgent ? 'urgent' : 'normal'}"></div>
+      <div class="queue-info">
+        <div class="queue-info-name">${q.id} · ${q.name}</div>
+        <div class="queue-info-meta">${q.patient} · ${q.diagnosis} · 审核时间 ${q.approvedAt} · 已等待 ${q.waitMin}min</div>
+      </div>
+      <span class="queue-status-tag ${q.waitMin > 60 ? 'late' : 'waiting'}">${q.waitMin > 60 ? '已超时' : '待配药'}</span>
+      <button class="btn btn-primary btn-sm">开始配药 →</button>
+    </div>
+  `).join('');
+}
+
+function sortQueue(by) {
+  renderQueue(by);
+  document.querySelectorAll('#sortTimeBtn, #sortUrgentBtn').forEach(b => b.style.background = '#fff');
+  document.getElementById(by === 'urgent' ? 'sortUrgentBtn' : 'sortTimeBtn').style.background = 'var(--teal-50)';
+}
+
+// =========================================================================
+// DISPENSING RENDERING (VIEW 4)
+// =========================================================================
+function renderDispensing() {
+  const area = document.getElementById('batchSelectionArea');
+  const alerts = document.getElementById('inventoryAlerts');
+
+  const dispenseDrugs = [
+    { drugId:3, name:'阿托伐他汀钙片', spec:'20mg×7片', maker:'辉瑞制药', insurance:'A' },
+    { drugId:2, name:'厄贝沙坦片', spec:'150mg×7片', maker:'赛诺菲', insurance:'A' },
+  ];
+
+  area.innerHTML = dispenseDrugs.map((dd, di) => {
+    const batches = BATCH_DB.filter(b => b.drugId === dd.drugId).sort((a, b) => new Date(a.expire) - new Date(b.expire));
+    const selected = selectedBatches[dd.drugId] || batches[0]?.id;
+    const fifoId = batches[0]?.id;
+    const isExpireWarn = (batch) => new Date(batch.expire) - new Date() < 90 * 24 * 60 * 60 * 1000;
+    const isLowStock = (batch) => batch.qty < 10;
+
+    return `
+      <div class="drug-verify-section">
+        <div class="drug-verify-header">
+          <div class="drug-verify-name">
+            <span style="color:var(--teal-700);">${di+1}.</span> ${dd.name}
+            <span class="insurance-tag insurance-${dd.insurance}">${dd.insurance==='A'?'甲':'乙'}</span>
+          </div>
+          <div class="drug-verify-meta">${dd.spec} · ${dd.maker}</div>
+        </div>
+        <div class="batch-list">
+          ${batches.map(b => `
+            <div class="batch-row ${b.id === fifoId ? 'fifo-recommended' : ''} ${b.id === selected ? 'selected' : ''}" onclick="selectBatch(${dd.drugId}, ${b.id})">
+              <div>
+                <div class="batch-field-label">批号</div>
+                <div class="batch-field-value">${b.batchNo}${b.id === fifoId ? ' <span style="font-size:10px;color:var(--teal-700);font-weight:700;">FIFO</span>' : ''}</div>
+              </div>
+              <div>
+                <div class="batch-field-label">采购价</div>
+                <div class="batch-field-value">¥${b.price} <span class="text-xs text-muted">/盒</span></div>
+              </div>
+              <div>
+                <div class="batch-field-label">库存</div>
+                <div class="batch-field-value ${isLowStock(b) ? 'warn' : ''}">${b.qty} 盒${isLowStock(b) ? ' ⚠' : ''}</div>
+              </div>
+              <div>
+                <div class="batch-field-label">有效期至</div>
+                <div class="batch-field-value ${isExpireWarn(b) ? 'warn' : ''}">${b.expire}${isExpireWarn(b) ? ' ⚠' : ''}</div>
+              </div>
+              <div class="batch-check">✓</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // Inventory alerts
+  const lowBatch = BATCH_DB.find(b => b.qty < 10 && new Date(b.expire) - new Date() < 180 * 24 * 60 * 60 * 1000);
+  if (lowBatch) {
+    const drug = DRUG_DB.find(d => d.id === lowBatch.drugId);
+    alerts.innerHTML = `
+      <div class="inventory-alert ${new Date(lowBatch.expire) - new Date() < 90 * 24 * 60 * 60 * 1000 ? 'expired' : 'low'}">
+        ⚠ ${drug ? drug.name : ''} 批号 ${lowBatch.batchNo} 仅剩 ${lowBatch.qty} 盒，有效期至 ${lowBatch.expire}
+        ${new Date(lowBatch.expire) - new Date() < 90 * 24 * 60 * 60 * 1000 ? '（即将过期，建议优先消耗）' : '（库存偏低，建议补货）'}
+      </div>`;
+  }
+}
+
+function selectBatch(drugId, batchId) {
+  selectedBatches[drugId] = batchId;
+  renderDispensing();
+}
+
+// =========================================================================
+// INIT
+// =========================================================================
+renderSelectedDrugs();
+updateAllergySummary();
+renderQueue();
+renderDispensing();
+
+// Drug search: show results on focus
+drugSearch.addEventListener('focus', () => { renderResults(drugSearch.value); });
+</script>
+</body>
+</html>

@@ -6,10 +6,10 @@ import * as service from '../services/patientService'
 const router = Router()
 router.use(auth)
 
-router.get('/', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/', requireRole('assistant', 'doctor'), async (req: Request, res: Response, next: NextFunction) => {
   try { res.json(await service.listPatients(req.query)) } catch (e) { next(e) }
 })
-router.get('/:id', async (req: Request, res: Response, next: NextFunction) => {
+router.get('/:id', requireRole('assistant', 'doctor'), async (req: Request, res: Response, next: NextFunction) => {
   try { res.json(await service.getPatient(parseInt(req.params.id))) } catch (e) { next(e) }
 })
 router.post('/', requireRole('assistant', 'doctor'), async (req: Request, res: Response, next: NextFunction) => {

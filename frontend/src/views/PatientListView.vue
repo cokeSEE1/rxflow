@@ -2,54 +2,141 @@
   <div class="page">
     <div class="page-header">
       <h2>患者管理</h2>
-      <el-button type="primary" @click="openCreate">新增患者</el-button>
+      <el-button
+        type="primary"
+        @click="openCreate"
+      >
+        新增患者
+      </el-button>
     </div>
 
     <el-card>
       <!-- Search Filters -->
-      <el-form :inline="true" :model="filters">
+      <el-form
+        :inline="true"
+        :model="filters"
+      >
         <el-form-item label="姓名">
-          <el-input v-model="filters.name" placeholder="患者姓名" clearable />
+          <el-input
+            v-model="filters.name"
+            placeholder="患者姓名"
+            clearable
+          />
         </el-form-item>
         <el-form-item label="电话">
-          <el-input v-model="filters.phone" placeholder="手机号码" clearable />
+          <el-input
+            v-model="filters.phone"
+            placeholder="手机号码"
+            clearable
+          />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            查询
+          </el-button>
+          <el-button @click="handleReset">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
 
       <!-- Table -->
-      <el-table :data="patientStore.list" v-loading="loading" stripe>
-        <el-table-column prop="name" label="姓名" width="100" />
-        <el-table-column prop="gender" label="性别" width="70" />
-        <el-table-column prop="age" label="年龄" width="70" />
-        <el-table-column prop="phone" label="电话" width="130" />
-        <el-table-column label="地址" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.address }}</template>
+      <el-table
+        v-loading="loading"
+        :data="patientStore.list"
+        stripe
+      >
+        <el-table-column
+          prop="name"
+          label="姓名"
+          width="100"
+        />
+        <el-table-column
+          prop="gender"
+          label="性别"
+          width="70"
+        />
+        <el-table-column
+          prop="age"
+          label="年龄"
+          width="70"
+        />
+        <el-table-column
+          prop="phone"
+          label="电话"
+          width="130"
+        />
+        <el-table-column
+          label="地址"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            {{ row.address }}
+          </template>
         </el-table-column>
-        <el-table-column label="身份证号" width="190">
+        <el-table-column
+          label="身份证号"
+          width="190"
+        >
           <template #default="{ row }">
             {{ maskIdCard(row.idCard) }}
           </template>
         </el-table-column>
-        <el-table-column label="过敏史" width="100" align="center">
+        <el-table-column
+          label="过敏史"
+          width="100"
+          align="center"
+        >
           <template #default="{ row }">
-            <el-tag v-if="row.allergyHistory" type="danger" effect="plain">
+            <el-tag
+              v-if="row.allergyHistory"
+              type="danger"
+              effect="plain"
+            >
               {{ row.allergyHistory }}
             </el-tag>
-            <span v-else class="text-muted">无</span>
+            <span
+              v-else
+              class="text-muted"
+            >无</span>
           </template>
         </el-table-column>
-        <el-table-column label="创建时间" width="170">
-          <template #default="{ row }">{{ formatDate(row.createdAt) }}</template>
-        </el-table-column>
-        <el-table-column label="操作" width="240" fixed="right">
+        <el-table-column
+          label="创建时间"
+          width="170"
+        >
           <template #default="{ row }">
-            <el-button size="small" @click="openEdit(row)">编辑</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
-            <el-button size="small" text type="primary" @click="viewPrescriptions(row)">
+            {{ formatDate(row.createdAt) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="操作"
+          width="240"
+          fixed="right"
+        >
+          <template #default="{ row }">
+            <el-button
+              size="small"
+              @click="openEdit(row)"
+            >
+              编辑
+            </el-button>
+            <el-button
+              size="small"
+              type="danger"
+              @click="handleDelete(row)"
+            >
+              删除
+            </el-button>
+            <el-button
+              size="small"
+              text
+              type="primary"
+              @click="viewPrescriptions(row)"
+            >
               查看处方
             </el-button>
           </template>
@@ -57,7 +144,10 @@
       </el-table>
 
       <!-- Empty state -->
-      <el-empty v-if="!loading && patientStore.list.length === 0" description="暂无患者数据" />
+      <el-empty
+        v-if="!loading && patientStore.list.length === 0"
+        description="暂无患者数据"
+      />
 
       <!-- Pagination -->
       <el-pagination
@@ -67,8 +157,8 @@
         :total="patientStore.total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
-        @change="handleSearch"
         style="margin-top:16px; justify-content:flex-end"
+        @change="handleSearch"
       />
     </el-card>
 
@@ -86,28 +176,69 @@
         :rules="formRules"
         label-width="100px"
       >
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="form.name" placeholder="请输入姓名" />
+        <el-form-item
+          label="姓名"
+          prop="name"
+        >
+          <el-input
+            v-model="form.name"
+            placeholder="请输入姓名"
+          />
         </el-form-item>
-        <el-form-item label="性别" prop="gender">
+        <el-form-item
+          label="性别"
+          prop="gender"
+        >
           <el-radio-group v-model="form.gender">
-            <el-radio value="男">男</el-radio>
-            <el-radio value="女">女</el-radio>
+            <el-radio value="男">
+              男
+            </el-radio>
+            <el-radio value="女">
+              女
+            </el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="年龄" prop="age">
-          <el-input-number v-model="form.age" :min="0" :max="150" />
+        <el-form-item
+          label="年龄"
+          prop="age"
+        >
+          <el-input-number
+            v-model="form.age"
+            :min="0"
+            :max="150"
+          />
         </el-form-item>
-        <el-form-item label="电话" prop="phone">
-          <el-input v-model="form.phone" placeholder="请输入手机号" />
+        <el-form-item
+          label="电话"
+          prop="phone"
+        >
+          <el-input
+            v-model="form.phone"
+            placeholder="请输入手机号"
+          />
         </el-form-item>
-        <el-form-item label="地址" prop="address">
-          <el-input v-model="form.address" placeholder="请输入地址" />
+        <el-form-item
+          label="地址"
+          prop="address"
+        >
+          <el-input
+            v-model="form.address"
+            placeholder="请输入地址"
+          />
         </el-form-item>
-        <el-form-item label="身份证号" prop="idCard">
-          <el-input v-model="form.idCard" placeholder="选填，18位身份证号" />
+        <el-form-item
+          label="身份证号"
+          prop="idCard"
+        >
+          <el-input
+            v-model="form.idCard"
+            placeholder="选填，18位身份证号"
+          />
         </el-form-item>
-        <el-form-item label="过敏史" prop="allergyHistory">
+        <el-form-item
+          label="过敏史"
+          prop="allergyHistory"
+        >
           <div class="allergy-label">
             <span class="label-required-star">*</span>
             <span class="label-text-important">重要</span>
@@ -121,8 +252,14 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="handleSubmit">
+        <el-button @click="dialogVisible = false">
+          取消
+        </el-button>
+        <el-button
+          type="primary"
+          :loading="submitting"
+          @click="handleSubmit"
+        >
           确定
         </el-button>
       </template>
@@ -136,6 +273,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import { usePatientStore } from '@/stores/patient'
+import type { Patient } from '@/types'
 
 const router = useRouter()
 const patientStore = usePatientStore()
@@ -156,7 +294,7 @@ const formRef = ref<FormInstance>()
 interface PatientForm {
   name: string
   gender: string
-  age: number | undefined
+  age: number
   phone: string
   address: string
   idCard: string
@@ -166,7 +304,7 @@ interface PatientForm {
 const defaultForm = (): PatientForm => ({
   name: '',
   gender: '男',
-  age: undefined,
+  age: 0,
   phone: '',
   address: '',
   idCard: '',
@@ -231,14 +369,14 @@ function openCreate() {
   dialogVisible.value = true
 }
 
-function openEdit(row: any) {
+function openEdit(row: Patient) {
   isEdit.value = true
   editingId.value = row.id
   form.name = row.name
   form.gender = row.gender || '男'
   form.age = row.age
   form.phone = row.phone
-  form.address = row.address
+  form.address = row.address || ''
   form.idCard = row.idCard || ''
   form.allergyHistory = row.allergyHistory || ''
   dialogVisible.value = true
@@ -256,7 +394,7 @@ async function handleSubmit() {
   submitting.value = true
   try {
     const payload = { ...form }
-    if (!payload.idCard) delete (payload as any).idCard
+    if (!payload.idCard) delete (payload as Record<string, unknown>).idCard
 
     if (isEdit.value && editingId.value != null) {
       await patientStore.update(editingId.value, payload)
@@ -275,7 +413,7 @@ async function handleSubmit() {
 }
 
 // --- Delete ---
-async function handleDelete(row: any) {
+async function handleDelete(row: Patient) {
   try {
     await ElMessageBox.confirm(`确定要删除患者「${row.name}」吗？此操作不可撤销。`, '删除确认', {
       confirmButtonText: '确定删除',
@@ -291,7 +429,7 @@ async function handleDelete(row: any) {
 }
 
 // --- Navigate ---
-function viewPrescriptions(row: any) {
+function viewPrescriptions(row: Patient) {
   router.push({ path: '/prescriptions', query: { patientName: row.name } })
 }
 
@@ -299,7 +437,7 @@ function viewPrescriptions(row: any) {
 onMounted(() => handleSearch())
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .page {
   max-width: 1400px;
 }

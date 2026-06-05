@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { login as loginApi, getMe } from '@/api/auth'
-import type { UserInfo } from '@/api/auth'
+import type { UserInfo } from '@/types'
 
 export const useUserStore = defineStore('user', () => {
   // 从 localstorage 恢复登录态（非 mock 模式无默认用户）

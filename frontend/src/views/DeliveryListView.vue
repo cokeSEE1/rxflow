@@ -6,19 +6,49 @@
 
     <!-- Filters -->
     <el-card class="filter-card">
-      <el-form :inline="true" :model="filters">
+      <el-form
+        :inline="true"
+        :model="filters"
+      >
         <el-form-item label="状态">
-          <el-select v-model="filters.status" placeholder="全部" clearable @change="handleSearch">
-            <el-option label="全部" value="" />
-            <el-option label="待取件" value="approved" />
-            <el-option label="配送中" value="delivering" />
-            <el-option label="已签收" value="received" />
-            <el-option label="异常退回" value="returned" />
+          <el-select
+            v-model="filters.status"
+            placeholder="全部"
+            clearable
+            @change="handleSearch"
+          >
+            <el-option
+              label="全部"
+              value=""
+            />
+            <el-option
+              label="待取件"
+              value="approved"
+            />
+            <el-option
+              label="配送中"
+              value="delivering"
+            />
+            <el-option
+              label="已签收"
+              value="received"
+            />
+            <el-option
+              label="异常退回"
+              value="returned"
+            />
           </el-select>
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button
+            type="primary"
+            @click="handleSearch"
+          >
+            查询
+          </el-button>
+          <el-button @click="handleReset">
+            重置
+          </el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -26,35 +56,70 @@
     <!-- Table -->
     <el-card class="table-card">
       <el-table
-        :data="prescriptionStore.list"
         v-loading="prescriptionStore.loading"
+        :data="prescriptionStore.list"
         stripe
       >
-        <el-table-column prop="prescriptionNo" label="处方编号" width="180" />
-        <el-table-column label="患者" width="100">
-          <template #default="{ row }">{{ row.patient?.name }}</template>
-        </el-table-column>
-        <el-table-column label="地址" min-width="180" show-overflow-tooltip>
-          <template #default="{ row }">{{ row.patient?.address || '—' }}</template>
-        </el-table-column>
-        <el-table-column label="电话" width="140">
+        <el-table-column
+          prop="prescriptionNo"
+          label="处方编号"
+          width="180"
+        />
+        <el-table-column
+          label="患者"
+          width="100"
+        >
           <template #default="{ row }">
-            <a v-if="row.patient?.phone" :href="'tel:' + row.patient.phone" class="phone-link">
+            {{ row.patient?.name }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="地址"
+          min-width="180"
+          show-overflow-tooltip
+        >
+          <template #default="{ row }">
+            {{ row.patient?.address || '—' }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          label="电话"
+          width="140"
+        >
+          <template #default="{ row }">
+            <a
+              v-if="row.patient?.phone"
+              :href="'tel:' + row.patient.phone"
+              class="phone-link"
+            >
               <el-icon><Phone /></el-icon>
               {{ row.patient.phone }}
             </a>
             <span v-else>—</span>
           </template>
         </el-table-column>
-        <el-table-column label="药品数" width="80" align="center">
-          <template #default="{ row }">{{ row.items?.length || 0 }}</template>
+        <el-table-column
+          label="药品数"
+          width="80"
+          align="center"
+        >
+          <template #default="{ row }">
+            {{ row.items?.length || 0 }}
+          </template>
         </el-table-column>
-        <el-table-column label="状态" width="100">
+        <el-table-column
+          label="状态"
+          width="100"
+        >
           <template #default="{ row }">
             <StatusTag :status="row.status" />
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="200" fixed="right">
+        <el-table-column
+          label="操作"
+          width="240"
+          fixed="right"
+        >
           <template #default="{ row }">
             <el-button
               v-if="row.status === 'approved'"
@@ -66,22 +131,38 @@
             </el-button>
 
             <template v-if="row.status === 'delivering'">
-              <el-button size="small" type="success" @click="openDeliverDialog(row)">
+              <el-button
+                size="small"
+                type="success"
+                @click="openDeliverDialog(row)"
+              >
                 确认签收
               </el-button>
-              <el-button size="small" type="danger" @click="openExceptionDialog(row)">
+              <el-button
+                size="small"
+                type="danger"
+                @click="openExceptionDialog(row)"
+              >
                 上报异常
               </el-button>
             </template>
 
-            <el-button
-              v-if="row.status === 'returned'"
-              size="small"
-              type="info"
-              @click="openExceptionDetail(row)"
-            >
-              查看异常
-            </el-button>
+            <template v-if="row.status === 'returned'">
+              <el-button
+                size="small"
+                type="primary"
+                @click="handleRedeliver(row)"
+              >
+                重新配送
+              </el-button>
+              <el-button
+                size="small"
+                type="info"
+                @click="openExceptionDetail(row)"
+              >
+                查看异常
+              </el-button>
+            </template>
           </template>
         </el-table-column>
       </el-table>
@@ -92,8 +173,8 @@
         :total="prescriptionStore.total"
         :page-sizes="[10, 20, 50]"
         layout="total, sizes, prev, pager, next"
-        @change="handleSearch"
         style="margin-top: 16px; justify-content: flex-end"
+        @change="handleSearch"
       />
     </el-card>
 
@@ -105,31 +186,69 @@
       :close-on-click-modal="false"
       @closed="deliverStep = 0"
     >
-      <el-steps :active="deliverStep" align-center style="margin-bottom: 24px">
+      <el-steps
+        :active="deliverStep"
+        align-center
+        style="margin-bottom: 24px"
+      >
         <el-step title="核对药品" />
         <el-step title="签收凭证" />
         <el-step title="确认签收" />
       </el-steps>
 
       <!-- Step 0: Drug checklist -->
-      <div v-show="deliverStep === 0" class="step-content">
-        <el-table :data="currentRx?.items" size="small" max-height="300">
-          <el-table-column prop="drugName" label="药品名称" />
-          <el-table-column prop="specification" label="规格" width="120">
-            <template #default="{ row: item }">{{ item.specification || item.spec || '—' }}</template>
+      <div
+        v-show="deliverStep === 0"
+        class="step-content"
+      >
+        <el-table
+          :data="currentRx?.items"
+          size="small"
+          max-height="300"
+        >
+          <el-table-column
+            prop="drugName"
+            label="药品名称"
+          />
+          <el-table-column
+            prop="specification"
+            label="规格"
+            width="120"
+          >
+            <template #default="{ row: item }">
+              {{ item.specification || item.spec || '—' }}
+            </template>
           </el-table-column>
-          <el-table-column prop="quantity" label="数量" width="80" align="center" />
+          <el-table-column
+            prop="quantity"
+            label="数量"
+            width="80"
+            align="center"
+          />
         </el-table>
       </div>
 
       <!-- Step 1: Proof -->
-      <div v-show="deliverStep === 1" class="step-content">
-        <el-radio-group v-model="deliverProofType" class="proof-type-group">
-          <el-radio-button value="photo">拍照上传</el-radio-button>
-          <el-radio-button value="sms">短信验证码</el-radio-button>
+      <div
+        v-show="deliverStep === 1"
+        class="step-content"
+      >
+        <el-radio-group
+          v-model="deliverProofType"
+          class="proof-type-group"
+        >
+          <el-radio-button value="photo">
+            拍照上传
+          </el-radio-button>
+          <el-radio-button value="sms">
+            短信验证码
+          </el-radio-button>
         </el-radio-group>
 
-        <div v-if="deliverProofType === 'photo'" class="proof-section">
+        <div
+          v-if="deliverProofType === 'photo'"
+          class="proof-section"
+        >
           <el-upload
             ref="deliverPhotoUploadRef"
             :auto-upload="false"
@@ -141,10 +260,15 @@
           >
             <el-icon><Plus /></el-icon>
           </el-upload>
-          <p class="upload-hint">请拍摄签收照片或上传图片</p>
+          <p class="upload-hint">
+            请拍摄签收照片或上传图片
+          </p>
         </div>
 
-        <div v-else class="proof-section">
+        <div
+          v-else
+          class="proof-section"
+        >
           <el-input
             v-model="deliverSmsCode"
             placeholder="请输入6位短信验证码"
@@ -152,12 +276,17 @@
             show-word-limit
             style="max-width: 260px"
           />
-          <p class="upload-hint">验证码已发送至患者手机</p>
+          <p class="upload-hint">
+            验证码已发送至患者手机
+          </p>
         </div>
       </div>
 
       <!-- Step 2: Confirm -->
-      <div v-show="deliverStep === 2" class="step-content">
+      <div
+        v-show="deliverStep === 2"
+        class="step-content"
+      >
         <div class="confirm-summary">
           <div class="summary-row">
             <span class="summary-label">处方编号</span>
@@ -180,12 +309,29 @@
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button v-if="deliverStep > 0" @click="deliverPrev">上一步</el-button>
-          <el-button v-if="deliverStep < 2" type="primary" @click="deliverNext">下一步</el-button>
-          <el-button v-if="deliverStep === 2" type="primary" @click="handleConfirmDeliver">
+          <el-button
+            v-if="deliverStep > 0"
+            @click="deliverPrev"
+          >
+            上一步
+          </el-button>
+          <el-button
+            v-if="deliverStep < 2"
+            type="primary"
+            @click="deliverNext"
+          >
+            下一步
+          </el-button>
+          <el-button
+            v-if="deliverStep === 2"
+            type="primary"
+            @click="handleConfirmDeliver"
+          >
             确认签收
           </el-button>
-          <el-button @click="deliverDialogVisible = false">取消</el-button>
+          <el-button @click="deliverDialogVisible = false">
+            取消
+          </el-button>
         </div>
       </template>
     </el-dialog>
@@ -197,9 +343,19 @@
       width="520px"
       :close-on-click-modal="false"
     >
-      <el-form :model="exceptionForm" label-position="top">
-        <el-form-item label="异常类型" required>
-          <el-select v-model="exceptionForm.type" placeholder="请选择异常类型" style="width: 100%">
+      <el-form
+        :model="exceptionForm"
+        label-position="top"
+      >
+        <el-form-item
+          label="异常类型"
+          required
+        >
+          <el-select
+            v-model="exceptionForm.type"
+            placeholder="请选择异常类型"
+            style="width: 100%"
+          >
             <el-option
               v-for="opt in exTypeOptions"
               :key="opt.value"
@@ -209,7 +365,10 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="异常描述" required>
+        <el-form-item
+          label="异常描述"
+          required
+        >
           <el-input
             v-model="exceptionForm.description"
             type="textarea"
@@ -236,39 +395,65 @@
           >
             <el-icon><Plus /></el-icon>
           </el-upload>
-          <p class="upload-hint">药品破损必须上传照片</p>
+          <p class="upload-hint">
+            药品破损必须上传照片
+          </p>
         </el-form-item>
       </el-form>
 
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="exceptionDialogVisible = false">取消</el-button>
-          <el-button type="danger" @click="handleSubmitException">确认上报</el-button>
+          <el-button @click="exceptionDialogVisible = false">
+            取消
+          </el-button>
+          <el-button
+            type="danger"
+            @click="handleSubmitException"
+          >
+            确认上报
+          </el-button>
         </div>
       </template>
     </el-dialog>
 
     <!-- Exception Detail Dialog (read-only) -->
-    <el-dialog v-model="exceptionDetailVisible" title="异常详情" width="480px">
-      <el-descriptions v-if="exceptionDetail" :column="1" border>
+    <el-dialog
+      v-model="exceptionDetailVisible"
+      title="异常详情"
+      width="480px"
+    >
+      <el-descriptions
+        v-if="exceptionDetail"
+        :column="1"
+        border
+      >
         <el-descriptions-item label="异常类型">
           {{ exTypeMap[exceptionDetail.type] || exceptionDetail.type }}
         </el-descriptions-item>
         <el-descriptions-item label="描述">
           {{ exceptionDetail.description }}
         </el-descriptions-item>
-        <el-descriptions-item v-if="exceptionDetail.photo" label="照片">
+        <el-descriptions-item
+          v-if="exceptionDetail.photo"
+          label="照片"
+        >
           <el-image
             :src="exceptionDetail.photo"
             :preview-src-list="[exceptionDetail.photo]"
             style="max-width: 200px; border-radius: 8px"
           />
         </el-descriptions-item>
-        <el-descriptions-item v-if="exceptionDetail.createdAt" label="上报时间">
+        <el-descriptions-item
+          v-if="exceptionDetail.createdAt"
+          label="上报时间"
+        >
           {{ new Date(exceptionDetail.createdAt).toLocaleString() }}
         </el-descriptions-item>
       </el-descriptions>
-      <el-empty v-else description="暂无异常信息" />
+      <el-empty
+        v-else
+        description="暂无异常信息"
+      />
     </el-dialog>
   </div>
 </template>
@@ -280,6 +465,7 @@ import { Phone, Plus } from '@element-plus/icons-vue'
 import { usePrescriptionStore } from '@/stores/prescription'
 import StatusTag from '@/components/StatusTag.vue'
 import type { UploadFile } from 'element-plus'
+import type { Prescription } from '@/types'
 
 const prescriptionStore = usePrescriptionStore()
 
@@ -322,7 +508,7 @@ function handleReset() {
 // -------------------------------------------------------
 // Pickup (approved → delivering)
 // -------------------------------------------------------
-async function handlePickup(row: any) {
+async function handlePickup(row: Prescription) {
   try {
     await ElMessageBox.confirm(
       `确认取件：处方 ${row.prescriptionNo}？`,
@@ -347,7 +533,7 @@ const deliverPhotoBase64 = ref('')
 const deliverSmsCode = ref('')
 const currentRx = ref<any>(null)
 
-function openDeliverDialog(row: any) {
+function openDeliverDialog(row: Prescription) {
   currentRx.value = row
   deliverStep.value = 0
   deliverProofType.value = 'photo'
@@ -417,7 +603,7 @@ const exceptionForm = reactive({
   photo: '',
 })
 
-function openExceptionDialog(row: any) {
+function openExceptionDialog(row: Prescription) {
   currentRx.value = row
   exceptionForm.type = ''
   exceptionForm.description = ''
@@ -473,9 +659,36 @@ async function handleSubmitException() {
 const exceptionDetailVisible = ref(false)
 const exceptionDetail = ref<any>(null)
 
-function openExceptionDetail(row: any) {
+function openExceptionDetail(row: Prescription) {
   exceptionDetail.value = row.exception || null
   exceptionDetailVisible.value = true
+}
+
+// -------------------------------------------------------
+// Redeliver (returned → approved)
+// -------------------------------------------------------
+async function handleRedeliver(row: Prescription) {
+  try {
+    const { value: reason } = await ElMessageBox.prompt(
+      '请输入重新配送原因',
+      '重新配送',
+      {
+        confirmButtonText: '确认配送',
+        cancelButtonText: '取消',
+        inputType: 'textarea',
+        inputPlaceholder: '请输入重新配送原因',
+        inputValidator: (value) => {
+          if (!value || value.trim().length === 0) return '请输入配送原因'
+          return true
+        },
+      },
+    )
+    await prescriptionStore.requestRedeliver(row.id, reason.trim())
+    ElMessage.success('已提交重新配送，处方回到待配送队列')
+    handleSearch()
+  } catch {
+    // user cancelled
+  }
 }
 
 // -------------------------------------------------------
@@ -484,7 +697,7 @@ function openExceptionDetail(row: any) {
 onMounted(() => handleSearch())
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .page {
   max-width: 1400px;
 }
