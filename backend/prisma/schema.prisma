@@ -33,6 +33,8 @@ model User {
   courierExceptions      DeliveryException[]
   rejectionTemplates     RejectionTemplate[]
   notifications          Notification[]
+  registrations          Registration[]
+  consultations          Consultation[]
 
   @@index([role])
 }
@@ -54,6 +56,8 @@ model Patient {
   createdBy      Int?
 
   prescriptions    Prescription[]
+  registrations    Registration[]
+  consultations    Consultation[]
   patientAllergies PatientAllergy[]
 
   @@index([phone])
@@ -70,6 +74,8 @@ model Prescription {
   patient         Patient   @relation(fields: [patientId], references: [id])
   assistantId     Int
   assistant       User      @relation("AssistantPrescriptions", fields: [assistantId], references: [id])
+  consultationId  Int?
+  consultation    Consultation? @relation(fields: [consultationId], references: [id])
   doctorId        Int?
   doctor          User?     @relation("DoctorPrescriptions", fields: [doctorId], references: [id])
   pharmacistId    Int?
@@ -126,6 +132,7 @@ model Prescription {
   @@index([courierId])
   @@index([pharmacistId])
   @@index([submittedAt])
+  @@index([consultationId])
   @@index([approvedAt])
 }
 
@@ -439,4 +446,57 @@ model PrescriptionVersion {
   @@unique([prescriptionId, version])
   @@index([prescriptionId])
   @@index([contentHash])
+}
+
+// ============================================================
+// Registration — 挂号记录
+// ============================================================
+model Registration {
+  id          Int      @id @default(autoincrement())
+  patientId   Int
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  doctorId    Int
+  doctor      User     @relation(fields: [doctorId], references: [id])
+  department  String   @db.VarChar(50)
+  registeredAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  consultations Consultation[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([registeredAt])
+}
+
+// ============================================================
+// Consultation — 问诊记录
+// ============================================================
+model Consultation {
+  id              Int      @id @default(autoincrement())
+  registrationId  Int?
+  registration    Registration? @relation(fields: [registrationId], references: [id])
+  patientId       Int
+  patient         Patient  @relation(fields: [patientId], references: [id])
+  doctorId        Int
+  doctor          User     @relation(fields: [doctorId], references: [id])
+  chiefComplaint  String   @db.Text
+  presentIllness  String?  @db.Text
+  pastHistory     String?  @db.Text
+  physicalExam    String?  @db.Text
+  auxiliaryExam   String?  @db.Text
+  diagnosis       String   @db.Text
+  icdCode         String?  @db.VarChar(20)
+  treatmentPlan   String?  @db.Text
+  status          String   @default("draft") @db.VarChar(20)
+  stepsCompleted  Json     @default("[\"chiefComplaint\", \"diagnosis\"]")
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  prescriptions Prescription[]
+
+  @@index([patientId])
+  @@index([doctorId])
+  @@index([status])
 }
