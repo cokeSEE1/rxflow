@@ -22,6 +22,7 @@ function getListFilter(role: string, userId: number, query: any) {
 
 export async function listPrescriptions(role: string, userId: number, query: any) {
   const where = getListFilter(role, userId, query)
+  if (query.consultationId) where.consultationId = parseInt(query.consultationId)
   // Patient: find patient record by matching user phone, then filter by patientId
   if (role === 'patient') {
     const user = await prisma.user.findUnique({ where: { id: userId } })
@@ -59,6 +60,7 @@ export async function getPrescription(id: number, role: string, userId: number) 
       assistant: { select: { name: true, phone: true } },
       doctor: { select: { name: true } },
       courier: { select: { name: true, phone: true } },
+      consultation: { select: { id: true, diagnosis: true } },
       items: true,
       timeline: { orderBy: { createdAt: 'asc' } },
     },
@@ -141,13 +143,20 @@ async function computeInteractionWarnings(drugIds: number[]) {
 }
 
 export async function createPrescription(data: {
-  patientId: number; assistantId: number; diagnosis: string; note?: string
+  patientId: number; assistantId: number; diagnosis: string; note?: string; consultationId?: number
   items: { drugName: string; specification: string; dosage: string; frequency: string; days: number; remark?: string }[]
 }) {
+  if (data.consultationId) {
+    const consultation = await prisma.consultation.findUnique({ where: { id: data.consultationId } })
+    if (!consultation) throw new AppError(404, '关联的问诊记录不存在')
+    if (consultation.status !== 'completed') throw new AppError(400, '只能关联已完诊的问诊记录')
+    if (!data.patientId) data.patientId = consultation.patientId
+  }
   const p = await prisma.prescription.create({
     data: {
       patientId: data.patientId, assistantId: data.assistantId,
       diagnosis: data.diagnosis, note: data.note || '', status: 'draft',
+      consultationId: data.consultationId || null,
       prescriptionNo: `TEMP-${Date.now()}`,
       items: { create: data.items },
       timeline: { create: { action: 'created', operatorId: data.assistantId, operatorName: '', detail: '创建处方' } },
