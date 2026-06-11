@@ -455,6 +455,45 @@ async function main() {
     },
   })
 
+  // ---- Consultations ----
+  const consultation1 = await prisma.consultation.create({
+    data: {
+      patientId: patient1.id,
+      doctorId: doctor.id,
+      chiefComplaint: '反复头晕、头痛1月余，加重3天',
+      presentIllness: '患者1月前无明显诱因出现头晕、头痛，呈持续性胀痛',
+      diagnosis: '高血压病2级',
+      icdCode: 'I10',
+      treatmentPlan: '建议口服硝苯地平控释片30mg qd，监测血压，低盐低脂饮食',
+      status: 'completed',
+      completedAt: new Date(),
+      stepsCompleted: ['chiefComplaint', 'diagnosis', 'presentIllness', 'treatmentPlan'],
+    },
+  })
+
+  const consultation2 = await prisma.consultation.create({
+    data: {
+      patientId: patient2.id,
+      doctorId: doctor.id,
+      chiefComplaint: '发热、咳嗽3天',
+      diagnosis: '急性上呼吸道感染',
+      icdCode: 'J06.9',
+      treatmentPlan: '建议口服阿莫西林0.5g tid，布洛芬必要时服用，多饮水休息',
+      status: 'completed',
+      completedAt: new Date(),
+    },
+  })
+
+  const consultation3 = await prisma.consultation.create({
+    data: {
+      patientId: patient1.id,
+      doctorId: doctor.id,
+      chiefComplaint: '口干、多饮、多尿2周',
+      diagnosis: '2型糖尿病',
+      status: 'in_progress',
+    },
+  })
+
   console.log('Seed complete. Login accounts (password: 123456):')
   console.log('  assistant:  13800001111')
   console.log('  doctor:     13800002222')
