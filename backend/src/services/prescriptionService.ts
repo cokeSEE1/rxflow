@@ -150,6 +150,9 @@ export async function createPrescription(data: {
     const consultation = await prisma.consultation.findUnique({ where: { id: data.consultationId } })
     if (!consultation) throw new AppError(404, '关联的问诊记录不存在')
     if (consultation.status !== 'completed') throw new AppError(400, '只能关联已完诊的问诊记录')
+    if (data.patientId && data.patientId !== consultation.patientId) {
+      throw new AppError(400, '处方患者与问诊患者不一致')
+    }
     if (!data.patientId) data.patientId = consultation.patientId
   }
   const p = await prisma.prescription.create({

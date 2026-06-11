@@ -33,12 +33,12 @@
         </el-table-column>
         <el-table-column label="主诉" min-width="180" show-overflow-tooltip>
           <template #default="{ row }">
-            {{ (row as Consultation).chiefComplaint }}
+            <span class="cell-truncate">{{ (row as Consultation).chiefComplaint }}</span>
           </template>
         </el-table-column>
         <el-table-column label="诊断" min-width="160" show-overflow-tooltip>
           <template #default="{ row }">
-            {{ (row as Consultation).diagnosis }}
+            <span class="cell-truncate">{{ (row as Consultation).diagnosis }}</span>
           </template>
         </el-table-column>
         <el-table-column label="状态" width="100">
@@ -108,4 +108,11 @@ onMounted(async () => {
 .page { padding: 0; }
 .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
 .page-header h2 { font-family: 'DM Serif Display', Georgia, serif; font-size: 20px; margin: 0; }
+
+.cell-truncate {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 </style>

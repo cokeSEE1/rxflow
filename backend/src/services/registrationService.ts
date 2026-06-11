@@ -6,8 +6,8 @@ export async function listRegistrations(query: any) {
   if (query.patientId) where.patientId = parseInt(query.patientId)
   if (query.doctorId) where.doctorId = parseInt(query.doctorId)
   if (query.department) where.department = query.department
-  const page = parseInt(query.page) || 1
-  const pageSize = parseInt(query.pageSize) || 20
+  const page = Math.max(1, parseInt(query.page) || 1)
+  const pageSize = Math.max(1, Math.min(100, parseInt(query.pageSize) || 20))
   const [data, total] = await Promise.all([
     prisma.registration.findMany({
       where,

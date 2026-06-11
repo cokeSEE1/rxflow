@@ -14,7 +14,7 @@
     </div>
     <div class="stat-card consultation-stat">
       <div class="stat-number">{{ consultationCounts.completedToday }}</div>
-      <div class="stat-label">今日完诊</div>
+      <div class="stat-label">完诊总计</div>
     </div>
     <div class="stat-card consultation-stat clickable" @click="$router.push('/consultations/new')">
       <el-icon :size="20"><Plus /></el-icon>
