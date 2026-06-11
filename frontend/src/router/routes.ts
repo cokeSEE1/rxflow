@@ -7,6 +7,7 @@ import PrescriptionFormView from '@/views/PrescriptionFormView.vue'
 import PrescriptionDetailView from '@/views/PrescriptionDetailView.vue'
 import PatientListView from '@/views/PatientListView.vue'
 import DeliveryListView from '@/views/DeliveryListView.vue'
+import ConsultationListView from '@/views/ConsultationListView.vue'
 import NotificationCenterView from '@/views/NotificationCenterView.vue'
 import ForbiddenView from '@/views/ForbiddenView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
@@ -57,6 +58,24 @@ export const routes: RouteRecordRaw[] = [
         name: 'PatientList',
         component: PatientListView,
         meta: { title: '患者管理', roles: ['assistant', 'doctor', 'pharmacist'], group: '业务管理' },
+      },
+      {
+        path: 'consultations',
+        name: 'ConsultationList',
+        component: ConsultationListView,
+        meta: { title: '问诊管理', roles: ['doctor'], group: '业务管理' },
+      },
+      {
+        path: 'consultations/new',
+        name: 'ConsultationCreate',
+        component: () => import('@/views/ConsultationFormView.vue'),
+        meta: { title: '新建问诊', roles: ['doctor'], sidebar: false },
+      },
+      {
+        path: 'consultations/:id',
+        name: 'ConsultationDetail',
+        component: () => import('@/views/ConsultationFormView.vue'),
+        meta: { title: '问诊详情', roles: ['doctor', 'assistant'], sidebar: false },
       },
       {
         path: 'pharmacy',
