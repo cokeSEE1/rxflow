@@ -40,6 +40,34 @@
         </template>
       </el-alert>
 
+      <!-- ==================== Consultation Linking ==================== -->
+      <div v-if="!isEdit && !resubmitMode" class="form-section">
+        <div class="section-header">
+          <h2 class="section-title">关联问诊</h2>
+        </div>
+        <el-form-item label="选择已完诊记录（可选）">
+          <el-select
+            v-model="linkedConsultationId"
+            filterable
+            remote
+            reserve-keyword
+            :remote-method="searchConsultations"
+            :loading="consultationLoading"
+            placeholder="按患者姓名或诊断搜索..."
+            clearable
+            style="width: 100%;"
+            @change="onConsultationSelect"
+          >
+            <el-option
+              v-for="c in consultationOptions"
+              :key="c.id"
+              :label="`${c.patient?.name} — ${c.diagnosis}`"
+              :value="c.id"
+            />
+          </el-select>
+        </el-form-item>
+      </div>
+
       <!-- ==================== Section 1: Patient Selector ==================== -->
       <div class="form-section">
         <div class="section-header">
@@ -296,6 +324,7 @@ import { ArrowDown } from '@element-plus/icons-vue'
 import { usePrescriptionStore } from '@/stores/prescription'
 import { usePatientStore } from '@/stores/patient'
 import { getTemplates, saveTemplate } from '@/api/prescriptions'
+import { listConsultations, getConsultation } from '@/api/consultations'
 import { useDraft } from '@/composables/useDraft'
 import PrescriptionPatientDrawer from '@/components/PrescriptionPatientDrawer.vue'
 import PrescriptionDrugItemRow from '@/components/PrescriptionDrugItemRow.vue'
@@ -348,6 +377,42 @@ const patientStore = usePatientStore()
 
 // ==================== Draft ====================
 const { draft, startAutoSave, stopAutoSave, clearDraft } = useDraft(DRAFT_KEY)
+
+// ==================== Consultation Linking ====================
+const linkedConsultationId = ref<number | undefined>(undefined)
+const consultationOptions = ref<any[]>([])
+const consultationLoading = ref(false)
+
+async function searchConsultations(query: string) {
+  if (!query) { consultationOptions.value = []; return }
+  consultationLoading.value = true
+  try {
+    const result = await listConsultations({ status: 'completed', patientName: query, pageSize: 10 })
+    consultationOptions.value = result.data || []
+  } finally { consultationLoading.value = false }
+}
+
+async function onConsultationSelect(consultationId: number | undefined) {
+  if (!consultationId) return
+  const consultation = await getConsultation(consultationId)
+
+  // Auto-fill patient
+  if (consultation.patient) {
+    form.patientId = consultation.patient.id
+    selectedPatient.value = consultation.patient
+    // Also ensure patient is in the store list
+    patientStore.fetchList({ name: consultation.patient.name }).then(() => {
+      onPatientSelect(consultation.patient!.id)
+    })
+  }
+
+  // Auto-fill diagnosis info into note
+  if (consultation.treatmentPlan) {
+    form.note = `[诊断关联] ${consultation.diagnosis}\n[用药建议] ${consultation.treatmentPlan}`
+  } else {
+    form.note = `[诊断关联] ${consultation.diagnosis}`
+  }
+}
 
 // ==================== Form State ====================
 const formRef = ref<FormInstance>()
@@ -561,12 +626,16 @@ async function loadPrescriptionForEdit() {
 function buildPayload() {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const cleanItems = form.items.map(({ _key, ...rest }) => rest)
-  return {
+  const payload: Record<string, unknown> = {
     patientId: form.patientId,
     diagnosis: form.diagnosis,
     items: cleanItems,
     note: form.note,
   }
+  if (linkedConsultationId.value) {
+    payload.consultationId = linkedConsultationId.value
+  }
+  return payload
 }
 
 async function handleSaveDraft() {
@@ -803,8 +872,7 @@ onBeforeUnmount(() => {
   margin-top: 6px;
   padding: 8px 12px;
   background: rgba(244, 63, 94, 0.06);
-  border-left: 3px solid var(--coral);
-  border-radius: 0 6px 6px 0;
+  border-radius: 6px;
 }
 
 .allergy-value {
