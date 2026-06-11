@@ -156,8 +156,8 @@ async function searchPatients(query: string) {
   if (!query) { patientOptions.value = []; return }
   patientLoading.value = true
   try {
-    const result = await patientStore.fetchList({ name: query, pageSize: 10 })
-    patientOptions.value = result?.data || []
+    await patientStore.fetchList({ name: query, pageSize: 10 })
+    patientOptions.value = patientStore.list
   } finally { patientLoading.value = false }
 }
 
