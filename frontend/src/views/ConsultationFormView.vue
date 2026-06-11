@@ -6,6 +6,7 @@
         <el-button v-if="isCreate" @click="$router.back()">取消</el-button>
         <el-button v-if="isCreate" type="primary" :loading="submitting" @click="handleCreate">保存草稿</el-button>
         <template v-if="!isCreate && store.current && store.current.status !== 'completed' && isDoctor">
+          <el-button v-if="store.current.status === 'draft'" type="warning" :loading="starting" @click="handleStart">开始问诊</el-button>
           <el-button type="primary" :loading="saving" @click="handleSave">保存</el-button>
           <el-button type="success" :loading="completing" @click="handleComplete">标记完诊</el-button>
         </template>
@@ -133,6 +134,7 @@ const canEdit = computed(() => isCreate.value || (isDoctor.value && store.curren
 
 const submitting = ref(false)
 const saving = ref(false)
+const starting = ref(false)
 const completing = ref(false)
 const loadingLinked = ref(false)
 const linkedPrescriptions = ref<any[]>([])
@@ -200,6 +202,14 @@ async function handleSave() {
     })
     ElMessage.success('已保存')
   } finally { saving.value = false }
+}
+
+async function handleStart() {
+  starting.value = true
+  try {
+    await store.start(store.current!.id)
+    ElMessage.success('已开始问诊')
+  } finally { starting.value = false }
 }
 
 async function handleComplete() {

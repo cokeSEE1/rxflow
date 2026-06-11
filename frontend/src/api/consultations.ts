@@ -16,6 +16,9 @@ export function updateConsultation(id: number, data: ConsultationUpdateParams) {
 export function completeConsultation(id: number) {
   return client.post(`/consultations/${id}/complete`).then((r) => r.data)
 }
+export function startConsultation(id: number) {
+  return client.post(`/consultations/${id}/start`).then((r) => r.data)
+}
 export function getConsultationPrescriptions(id: number) {
   return client.get(`/consultations/${id}/prescriptions`).then((r) => r.data)
 }

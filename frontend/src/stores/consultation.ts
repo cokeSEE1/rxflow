@@ -40,5 +40,11 @@ export const useConsultationStore = defineStore('consultation', () => {
     return result
   }
 
-  return { list, current, total, loading, fetchList, fetchDetail, create, update, complete }
+  async function start(id: number) {
+    const result = await api.startConsultation(id)
+    if (current.value && current.value.id === id) current.value = result
+    return result
+  }
+
+  return { list, current, total, loading, fetchList, fetchDetail, create, update, complete, start }
 })
