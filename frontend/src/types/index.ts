@@ -18,6 +18,9 @@ export type {
 // 患者
 export type { Patient, PatientQuery, PatientCreateParams } from './patient'
 
+// 问诊
+export type { ConsultationStatus, Consultation, ConsultationQuery, ConsultationCreateParams, ConsultationUpdateParams } from './consultation'
+
 // 药品
 export type { DrugQuery, Drug, DrugSearchResult, SelectedDrug } from './drug'
 
