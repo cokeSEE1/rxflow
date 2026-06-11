@@ -499,4 +499,5 @@ model Consultation {
   @@index([patientId])
   @@index([doctorId])
   @@index([status])
+  @@index([registrationId])
 }

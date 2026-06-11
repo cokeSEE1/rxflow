@@ -40,6 +40,7 @@ CREATE TABLE `Consultation` (
     INDEX `Consultation_patientId_idx`(`patientId`),
     INDEX `Consultation_doctorId_idx`(`doctorId`),
     INDEX `Consultation_status_idx`(`status`),
+    INDEX `Consultation_registrationId_idx`(`registrationId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
