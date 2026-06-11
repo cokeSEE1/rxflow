@@ -11,6 +11,7 @@ import drugRoutes from './routes/drugs'
 import dispensingRoutes from './routes/dispensing'
 import signatureRoutes from './routes/signatures'
 import auditRoutes from './routes/audit'
+import registrationRoutes from './routes/registrations'
 
 const app = express()
 app.use(cors())
@@ -25,6 +26,7 @@ app.use('/api/drugs', drugRoutes)
 app.use('/api/dispensing', dispensingRoutes)
 app.use('/api/signatures', signatureRoutes)
 app.use('/api/audit-logs', auditRoutes)
+app.use('/api/registrations', registrationRoutes)
 
 app.use(errorHandler)
 
