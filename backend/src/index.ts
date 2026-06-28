@@ -13,6 +13,8 @@ import signatureRoutes from './routes/signatures'
 import auditRoutes from './routes/audit'
 import registrationRoutes from './routes/registrations'
 import consultationRoutes from './routes/consultations'
+import allergyRoutes from './routes/patient-allergies'
+import allergenRoutes from './routes/allergens'
 
 const app = express()
 app.use(cors())
@@ -29,6 +31,8 @@ app.use('/api/signatures', signatureRoutes)
 app.use('/api/audit-logs', auditRoutes)
 app.use('/api/registrations', registrationRoutes)
 app.use('/api/consultations', consultationRoutes)
+app.use('/api/patient-allergies', allergyRoutes)
+app.use('/api/allergens', allergenRoutes)
 
 app.use(errorHandler)
 
