@@ -18,6 +18,19 @@ router.get(
   },
 )
 
+// ⚠️ Static path /sort-orders MUST be before /:id routes
+router.put(
+  '/sort-orders',
+  requireRole('assistant', 'doctor'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await service.updateSortOrders(req.body.orders))
+    } catch (e) {
+      next(e)
+    }
+  },
+)
+
 router.get(
   '/:id',
   requireRole('assistant', 'doctor', 'pharmacist'),
@@ -48,6 +61,18 @@ router.put(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       res.json(await service.updatePatientAllergy(parseInt(req.params.id), req.body))
+    } catch (e) {
+      next(e)
+    }
+  },
+)
+
+router.patch(
+  '/:id/pin',
+  requireRole('assistant', 'doctor'),
+  async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await service.togglePin(parseInt(req.params.id)))
     } catch (e) {
       next(e)
     }
