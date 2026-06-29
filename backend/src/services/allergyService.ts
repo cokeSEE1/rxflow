@@ -4,14 +4,16 @@ const prisma = new PrismaClient()
 export async function listPatientAllergies(query: any) {
   const where: any = {}
 
-  // 支持按患者姓名搜索
   if (query.patientName) {
     where.patient = { name: { contains: query.patientName } }
   }
 
-  // 支持按过敏原名称搜索
   if (query.allergenName) {
     where.allergen = { name: { contains: query.allergenName } }
+  }
+
+  if (query.severity) {
+    where.severity = query.severity
   }
 
   const page = parseInt(query.page) || 1
@@ -23,8 +25,13 @@ export async function listPatientAllergies(query: any) {
       include: {
         patient: { select: { id: true, name: true, phone: true } },
         allergen: { select: { id: true, name: true, category: true } },
+        images: { select: { id: true, name: true, url: true } },
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: [
+        { pinned: 'desc' },
+        { sortOrder: 'asc' },
+        { createdAt: 'desc' },
+      ],
       skip: (page - 1) * pageSize,
       take: pageSize,
     }),
@@ -40,6 +47,7 @@ export async function getPatientAllergy(id: number) {
     include: {
       patient: { select: { id: true, name: true, phone: true } },
       allergen: { select: { id: true, name: true, category: true } },
+      images: { select: { id: true, name: true, url: true } },
     },
   })
 }
@@ -50,6 +58,8 @@ export async function createPatientAllergy(data: {
   severity?: string
   remark?: string
   source?: string
+  pinned?: boolean
+  images?: { name: string; url: string }[]
 }) {
   return prisma.patientAllergy.create({
     data: {
@@ -58,10 +68,15 @@ export async function createPatientAllergy(data: {
       severity: data.severity || null,
       remark: data.remark || null,
       source: data.source || 'manual',
+      pinned: data.pinned || false,
+      images: data.images ? {
+        create: data.images,
+      } : undefined,
     },
     include: {
       patient: { select: { id: true, name: true, phone: true } },
       allergen: { select: { id: true, name: true, category: true } },
+      images: { select: { id: true, name: true, url: true } },
     },
   })
 }
@@ -74,8 +89,15 @@ export async function updatePatientAllergy(
     severity?: string
     remark?: string
     source?: string
+    pinned?: boolean
+    sortOrder?: number
+    images?: { name: string; url: string }[]
   },
 ) {
+  if (data.images !== undefined) {
+    await prisma.allergyImage.deleteMany({ where: { patientAllergyId: id } })
+  }
+
   return prisma.patientAllergy.update({
     where: { id },
     data: {
@@ -84,14 +106,56 @@ export async function updatePatientAllergy(
       severity: data.severity,
       remark: data.remark,
       source: data.source,
+      pinned: data.pinned,
+      sortOrder: data.sortOrder,
+      images: data.images ? {
+        create: data.images,
+      } : undefined,
     },
     include: {
       patient: { select: { id: true, name: true, phone: true } },
       allergen: { select: { id: true, name: true, category: true } },
+      images: { select: { id: true, name: true, url: true } },
     },
   })
 }
 
 export async function deletePatientAllergy(id: number) {
   return prisma.patientAllergy.delete({ where: { id } })
+}
+
+export async function togglePin(id: number) {
+  const record = await prisma.patientAllergy.findUnique({ where: { id } })
+  if (!record) throw new Error('记录不存在')
+
+  const newPinned = !record.pinned
+  const pinnedCount = await prisma.patientAllergy.count({ where: { pinned: true } })
+
+  if (newPinned && pinnedCount >= 10) {
+    throw new Error('置顶最多 10 条，请先取消其他置顶')
+  }
+
+  const data: any = { pinned: newPinned }
+  if (newPinned) {
+    data.sortOrder = pinnedCount + 1
+  }
+
+  return prisma.patientAllergy.update({
+    where: { id },
+    data,
+    include: {
+      patient: { select: { id: true, name: true, phone: true } },
+      allergen: { select: { id: true, name: true, category: true } },
+      images: { select: { id: true, name: true, url: true } },
+    },
+  })
+}
+
+export async function updateSortOrders(orders: { id: number; sortOrder: number }[]) {
+  await Promise.all(
+    orders.map(({ id, sortOrder }) =>
+      prisma.patientAllergy.update({ where: { id }, data: { sortOrder } })
+    )
+  )
+  return { success: true }
 }
