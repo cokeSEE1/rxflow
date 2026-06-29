@@ -348,10 +348,28 @@ model PatientAllergy {
   severity   String?  @db.VarChar(20)
   remark     String?  @db.VarChar(500)
   source     String   @default("manual") @db.VarChar(20)
+  pinned     Boolean  @default(false)
+  sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
+
+  images    AllergyImage[]
 
   @@unique([patientId, allergenId])
   @@index([patientId])
+}
+
+// ============================================================
+// AllergyImage — 患者过敏影像
+// ============================================================
+model AllergyImage {
+  id               Int            @id @default(autoincrement())
+  patientAllergyId Int
+  patientAllergy   PatientAllergy @relation(fields: [patientAllergyId], references: [id], onDelete: Cascade)
+  name             String         @db.VarChar(200)
+  url              String         @db.VarChar(500)
+  createdAt        DateTime       @default(now())
+
+  @@index([patientAllergyId])
 }
 
 // ============================================================
