@@ -13,12 +13,15 @@ import signatureRoutes from './routes/signatures'
 import auditRoutes from './routes/audit'
 import registrationRoutes from './routes/registrations'
 import consultationRoutes from './routes/consultations'
+import path from 'path'
 import allergyRoutes from './routes/patient-allergies'
 import allergenRoutes from './routes/allergens'
+import uploadRoutes from './routes/upload'
 
 const app = express()
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
+app.use('/uploads', express.static(path.resolve(__dirname, '../uploads')))
 
 app.use('/api/auth', authRoutes)
 app.use('/api/prescriptions', prescriptionRoutes)
@@ -33,6 +36,7 @@ app.use('/api/registrations', registrationRoutes)
 app.use('/api/consultations', consultationRoutes)
 app.use('/api/patient-allergies', allergyRoutes)
 app.use('/api/allergens', allergenRoutes)
+app.use('/api/upload', uploadRoutes)
 
 app.use(errorHandler)
 
