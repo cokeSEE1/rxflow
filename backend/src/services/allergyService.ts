@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { Prisma, PrismaClient } from '@prisma/client'
 const prisma = new PrismaClient()
 
 export async function listPatientAllergies(query: any) {
@@ -94,29 +94,29 @@ export async function updatePatientAllergy(
     images?: { name: string; url: string }[]
   },
 ) {
-  if (data.images !== undefined) {
-    await prisma.allergyImage.deleteMany({ where: { patientAllergyId: id } })
-  }
+  return prisma.$transaction(async (tx) => {
+    if (data.images !== undefined) {
+      await tx.allergyImage.deleteMany({ where: { patientAllergyId: id } })
+    }
 
-  return prisma.patientAllergy.update({
-    where: { id },
-    data: {
-      patientId: data.patientId,
-      allergenId: data.allergenId,
-      severity: data.severity,
-      remark: data.remark,
-      source: data.source,
-      pinned: data.pinned,
-      sortOrder: data.sortOrder,
-      images: data.images ? {
-        create: data.images,
-      } : undefined,
-    },
-    include: {
-      patient: { select: { id: true, name: true, phone: true } },
-      allergen: { select: { id: true, name: true, category: true } },
-      images: { select: { id: true, name: true, url: true } },
-    },
+    return tx.patientAllergy.update({
+      where: { id },
+      data: {
+        patientId: data.patientId,
+        allergenId: data.allergenId,
+        severity: data.severity,
+        remark: data.remark,
+        source: data.source,
+        pinned: data.pinned,
+        sortOrder: data.sortOrder,
+        images: data.images ? { create: data.images } : undefined,
+      },
+      include: {
+        patient: { select: { id: true, name: true, phone: true } },
+        allergen: { select: { id: true, name: true, category: true } },
+        images: { select: { id: true, name: true, url: true } },
+      },
+    })
   })
 }
 
@@ -125,37 +125,44 @@ export async function deletePatientAllergy(id: number) {
 }
 
 export async function togglePin(id: number) {
-  const record = await prisma.patientAllergy.findUnique({ where: { id } })
-  if (!record) throw new Error('记录不存在')
+  return prisma.$transaction(async (tx) => {
+    const record = await tx.patientAllergy.findUnique({ where: { id } })
+    if (!record) throw new Error('记录不存在')
 
-  const newPinned = !record.pinned
-  const pinnedCount = await prisma.patientAllergy.count({ where: { pinned: true } })
+    const newPinned = !record.pinned
+    const pinnedCount = await tx.patientAllergy.count({ where: { pinned: true } })
 
-  if (newPinned && pinnedCount >= 10) {
-    throw new Error('置顶最多 10 条，请先取消其他置顶')
-  }
+    if (newPinned && pinnedCount >= 10) {
+      throw new Error('置顶最多 10 条，请先取消其他置顶')
+    }
 
-  const data: any = { pinned: newPinned }
-  if (newPinned) {
-    data.sortOrder = pinnedCount + 1
-  }
-
-  return prisma.patientAllergy.update({
-    where: { id },
-    data,
-    include: {
-      patient: { select: { id: true, name: true, phone: true } },
-      allergen: { select: { id: true, name: true, category: true } },
-      images: { select: { id: true, name: true, url: true } },
-    },
+    return tx.patientAllergy.update({
+      where: { id },
+      data: {
+        pinned: newPinned,
+        sortOrder: newPinned ? pinnedCount + 1 : 0,
+      },
+      include: {
+        patient: { select: { id: true, name: true, phone: true } },
+        allergen: { select: { id: true, name: true, category: true } },
+        images: { select: { id: true, name: true, url: true } },
+      },
+    })
   })
 }
 
 export async function updateSortOrders(orders: { id: number; sortOrder: number }[]) {
-  await Promise.all(
-    orders.map(({ id, sortOrder }) =>
-      prisma.patientAllergy.update({ where: { id }, data: { sortOrder } })
+  try {
+    await Promise.all(
+      orders.map(({ id, sortOrder }) =>
+        prisma.patientAllergy.update({ where: { id }, data: { sortOrder } })
+      )
     )
-  )
-  return { success: true }
+    return { success: true }
+  } catch (e) {
+    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
+      throw new Error('部分记录不存在')
+    }
+    throw e
+  }
 }
