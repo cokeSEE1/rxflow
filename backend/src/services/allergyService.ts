@@ -1,4 +1,5 @@
-import { Prisma, PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
+import { AppError } from '../middleware/errorHandler'
 const prisma = new PrismaClient()
 
 export async function listPatientAllergies(query: any) {
@@ -61,24 +62,55 @@ export async function createPatientAllergy(data: {
   pinned?: boolean
   images?: { name: string; url: string }[]
 }) {
-  return prisma.patientAllergy.create({
-    data: {
-      patientId: data.patientId,
-      allergenId: data.allergenId,
-      severity: data.severity || null,
-      remark: data.remark || null,
-      source: data.source || 'manual',
-      pinned: data.pinned || false,
-      images: data.images ? {
-        create: data.images,
-      } : undefined,
-    },
-    include: {
-      patient: { select: { id: true, name: true, phone: true } },
-      allergen: { select: { id: true, name: true, category: true } },
-      images: { select: { id: true, name: true, url: true } },
-    },
-  })
+  const allergenId = Number(data.allergenId)
+  if (!allergenId) {
+    throw new AppError(400, '过敏原ID不能为空')
+  }
+
+  let patientId: number
+  const rawPatient = data.patientId as any
+
+  if (!rawPatient) {
+    throw new AppError(400, '患者ID或姓名不能为空')
+  }
+
+  if (/^\d+$/.test(String(rawPatient))) {
+    patientId = Number(rawPatient)
+  } else {
+    const patient = await prisma.patient.findFirst({
+      where: { name: { contains: String(rawPatient) } },
+    })
+    if (!patient) {
+      throw new AppError(404, `未找到患者「${rawPatient}」`)
+    }
+    patientId = patient.id
+  }
+
+  try {
+    return await prisma.patientAllergy.create({
+      data: {
+        patientId,
+        allergenId,
+        severity: data.severity || null,
+        remark: data.remark || null,
+        source: data.source || 'manual',
+        pinned: data.pinned || false,
+        images: data.images ? {
+          create: data.images,
+        } : undefined,
+      },
+      include: {
+        patient: { select: { id: true, name: true, phone: true } },
+        allergen: { select: { id: true, name: true, category: true } },
+        images: { select: { id: true, name: true, url: true } },
+      },
+    })
+  } catch (e: any) {
+    if (e?.code === 'P2002') {
+      throw new AppError(409, '该患者的此过敏原记录已存在')
+    }
+    throw e
+  }
 }
 
 export async function updatePatientAllergy(
@@ -99,24 +131,34 @@ export async function updatePatientAllergy(
       await tx.allergyImage.deleteMany({ where: { patientAllergyId: id } })
     }
 
-    return tx.patientAllergy.update({
-      where: { id },
-      data: {
-        patientId: data.patientId,
-        allergenId: data.allergenId,
-        severity: data.severity,
-        remark: data.remark,
-        source: data.source,
-        pinned: data.pinned,
-        sortOrder: data.sortOrder,
-        images: data.images ? { create: data.images } : undefined,
-      },
-      include: {
-        patient: { select: { id: true, name: true, phone: true } },
-        allergen: { select: { id: true, name: true, category: true } },
-        images: { select: { id: true, name: true, url: true } },
-      },
-    })
+    try {
+      return await tx.patientAllergy.update({
+        where: { id },
+        data: {
+          patientId: data.patientId,
+          allergenId: data.allergenId,
+          severity: data.severity,
+          remark: data.remark,
+          source: data.source,
+          pinned: data.pinned,
+          sortOrder: data.sortOrder,
+          images: data.images ? { create: data.images } : undefined,
+        },
+        include: {
+          patient: { select: { id: true, name: true, phone: true } },
+          allergen: { select: { id: true, name: true, category: true } },
+          images: { select: { id: true, name: true, url: true } },
+        },
+      })
+    } catch (e: any) {
+      if (e?.code === 'P2025') {
+        throw new AppError(404, '过敏档案记录不存在')
+      }
+      if (e?.code === 'P2002') {
+        throw new AppError(409, '该患者的此过敏原记录已存在')
+      }
+      throw e
+    }
   })
 }
 
@@ -127,12 +169,12 @@ export async function deletePatientAllergy(id: number) {
 export async function setPin(id: number, pinned: boolean) {
   return prisma.$transaction(async (tx) => {
     const record = await tx.patientAllergy.findUnique({ where: { id } })
-    if (!record) throw new Error('记录不存在')
+    if (!record) throw new AppError(404, '记录不存在')
 
     if (pinned) {
       const pinnedCount = await tx.patientAllergy.count({ where: { pinned: true } })
       if (pinnedCount >= 10) {
-        throw new Error('置顶最多 10 条，请先取消其他置顶')
+        throw new AppError(400, '置顶最多 10 条，请先取消其他置顶')
       }
     }
 
@@ -159,9 +201,9 @@ export async function updateSortOrders(orders: { id: number; sortOrder: number }
       )
     )
     return { success: true }
-  } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2025') {
-      throw new Error('部分记录不存在')
+  } catch (e: any) {
+    if (e?.code === 'P2025') {
+      throw new AppError(404, '部分记录不存在')
     }
     throw e
   }

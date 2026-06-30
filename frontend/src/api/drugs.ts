@@ -14,3 +14,59 @@ export function getDrug(id: number) {
 export function listDrugs(query: DrugQuery = {}) {
   return client.get('/drugs', { params: query }).then((r) => r.data)
 }
+
+// --- 患者过敏档案 ---
+export interface PatientAllergyQuery {
+  patientName?: string
+  allergenName?: string
+  page?: number
+  pageSize?: number
+}
+
+export interface PatientAllergyItem {
+  id: number
+  patientId: number
+  allergenId: number
+  severity: string
+  remark: string
+  source: string
+  createdAt: string
+  patient: { id: number; name: string; phone: string }
+  allergen: { id: number; name: string; category: string }
+}
+
+export function listPatientAllergies(query: PatientAllergyQuery = {}) {
+  return client.get<{ data: PatientAllergyItem[]; total: number; page: number; pageSize: number }>('/patient-allergies', { params: query }).then((r) => r.data)
+}
+
+export function getPatientAllergy(id: number) {
+  return client.get<PatientAllergyItem>(`/patient-allergies/${id}`).then((r) => r.data)
+}
+
+export interface CreatePatientAllergyBody {
+  patientId: number
+  allergenId: number
+  severity?: string
+  remark?: string
+  source?: string
+}
+
+export function createPatientAllergy(body: CreatePatientAllergyBody) {
+  return client.post('/patient-allergies', body).then((r) => r.data)
+}
+
+export interface UpdatePatientAllergyBody {
+  patientId?: number
+  allergenId?: number
+  severity?: string
+  remark?: string
+  source?: string
+}
+
+export function updatePatientAllergy(id: number, body: UpdatePatientAllergyBody) {
+  return client.put(`/patient-allergies/${id}`, body).then((r) => r.data)
+}
+
+export function deletePatientAllergy(id: number) {
+  return client.delete(`/patient-allergies/${id}`).then((r) => r.data)
+}
