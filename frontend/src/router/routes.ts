@@ -11,6 +11,7 @@ import ConsultationListView from '@/views/ConsultationListView.vue'
 import NotificationCenterView from '@/views/NotificationCenterView.vue'
 import ForbiddenView from '@/views/ForbiddenView.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
+import DrugView from '@/views/Drug.vue'
 
 export const routes: RouteRecordRaw[] = [
   {
@@ -34,6 +35,12 @@ export const routes: RouteRecordRaw[] = [
         name: 'PrescriptionList',
         component: PrescriptionListView,
         meta: { title: '处方管理', roles: ['assistant', 'doctor', 'patient', 'pharmacist'], group: '业务管理' },
+      },
+      {
+        path: 'drug',
+        name: 'DrugList',
+        component: DrugView,
+        meta: { title: '过敏档案', roles: ['assistant', 'doctor', 'pharmacist'], group: '业务管理' },
       },
       {
         path: 'prescriptions/new',
