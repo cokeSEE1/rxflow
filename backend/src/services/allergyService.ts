@@ -124,23 +124,23 @@ export async function deletePatientAllergy(id: number) {
   return prisma.patientAllergy.delete({ where: { id } })
 }
 
-export async function togglePin(id: number) {
+export async function setPin(id: number, pinned: boolean) {
   return prisma.$transaction(async (tx) => {
     const record = await tx.patientAllergy.findUnique({ where: { id } })
     if (!record) throw new Error('记录不存在')
 
-    const newPinned = !record.pinned
-    const pinnedCount = await tx.patientAllergy.count({ where: { pinned: true } })
-
-    if (newPinned && pinnedCount >= 10) {
-      throw new Error('置顶最多 10 条，请先取消其他置顶')
+    if (pinned) {
+      const pinnedCount = await tx.patientAllergy.count({ where: { pinned: true } })
+      if (pinnedCount >= 10) {
+        throw new Error('置顶最多 10 条，请先取消其他置顶')
+      }
     }
 
     return tx.patientAllergy.update({
       where: { id },
       data: {
-        pinned: newPinned,
-        sortOrder: newPinned ? pinnedCount + 1 : 0,
+        pinned,
+        sortOrder: pinned ? 999 : 0,
       },
       include: {
         patient: { select: { id: true, name: true, phone: true } },

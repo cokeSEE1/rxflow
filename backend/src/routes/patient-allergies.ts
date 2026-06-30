@@ -72,7 +72,7 @@ router.patch(
   requireRole('assistant', 'doctor'),
   async (req: Request, res: Response, next: NextFunction) => {
     try {
-      res.json(await service.togglePin(parseInt(req.params.id)))
+      res.json(await service.setPin(parseInt(req.params.id), req.body.pinned))
     } catch (e) {
       next(e)
     }
