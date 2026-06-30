@@ -351,23 +351,22 @@ model PatientAllergy {
   pinned     Boolean  @default(false)
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
-
-  images    AllergyImage[]
+  images     AllergyImage[]
 
   @@unique([patientId, allergenId])
   @@index([patientId])
 }
 
 // ============================================================
-// AllergyImage — 患者过敏影像
+// AllergyImage — 过敏档案附属图片
 // ============================================================
 model AllergyImage {
-  id               Int            @id @default(autoincrement())
-  patientAllergyId Int
-  patientAllergy   PatientAllergy @relation(fields: [patientAllergyId], references: [id], onDelete: Cascade)
-  name             String         @db.VarChar(200)
-  url              String         @db.VarChar(500)
-  createdAt        DateTime       @default(now())
+  id                Int             @id @default(autoincrement())
+  patientAllergyId  Int
+  patientAllergy    PatientAllergy  @relation(fields: [patientAllergyId], references: [id], onDelete: Cascade)
+  name              String          @db.VarChar(200)
+  url               String          @db.VarChar(500)
+  createdAt         DateTime        @default(now())
 
   @@index([patientAllergyId])
 }

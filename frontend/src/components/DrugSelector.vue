@@ -258,7 +258,7 @@
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessageBox } from 'element-plus'
-import { useDrugStore } from '@/stores/drug'
+import { useDrugStore } from '../stores/drug'
 import type { DrugSearchResult, SelectedDrug } from '@/types'
 
 const props = defineProps<{

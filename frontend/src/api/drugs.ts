@@ -30,9 +30,12 @@ export interface PatientAllergyItem {
   severity: string
   remark: string
   source: string
+  pinned: boolean
+  sortOrder: number
   createdAt: string
   patient: { id: number; name: string; phone: string }
   allergen: { id: number; name: string; category: string }
+  images?: { id: number; name: string; url: string }[]
 }
 
 export function listPatientAllergies(query: PatientAllergyQuery = {}) {
@@ -69,4 +72,12 @@ export function updatePatientAllergy(id: number, body: UpdatePatientAllergyBody)
 
 export function deletePatientAllergy(id: number) {
   return client.delete(`/patient-allergies/${id}`).then((r) => r.data)
+}
+
+export function setPatientAllergyPin(id: number, pinned: boolean) {
+  return client.patch(`/patient-allergies/${id}/pin`, { pinned }).then((r) => r.data)
+}
+
+export function updatePatientAllergySortOrders(orders: { id: number; sortOrder: number }[]) {
+  return client.put('/patient-allergies/sort-orders', { orders }).then((r) => r.data)
 }
