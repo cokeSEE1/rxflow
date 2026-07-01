@@ -19,6 +19,7 @@ export function listDrugs(query: DrugQuery = {}) {
 export interface PatientAllergyQuery {
   patientName?: string
   allergenName?: string
+  severity?: string
   page?: number
   pageSize?: number
 }

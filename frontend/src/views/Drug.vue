@@ -281,6 +281,7 @@ async function handleSearch() {
     const res = await listPatientAllergies({
       patientName: filters.patientName || undefined,
       allergenName: filters.allergenName || undefined,
+      severity: filters.severity || undefined,
       page: page.value,
       pageSize: pageSize.value,
     })
