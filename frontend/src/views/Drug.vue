@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, watch, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import * as echarts from 'echarts'
 import type { FormInstance, FormRules } from 'element-plus'
 import { listAllergens, createAllergen, updateAllergen, deleteAllergen } from '@/api/allergens'
 import type { Allergen } from '@/api/allergens'
@@ -255,6 +256,44 @@ function categoryTagType(cat: string): string {
 const severeCount = computed(() => tableData.value.filter((i) => i.rawSeverity === 'severe').length)
 const moderateCount = computed(() => tableData.value.filter((i) => i.rawSeverity === 'moderate').length)
 const compatibleCount = computed(() => tableData.value.filter((i) => i.rawSeverity === 'compatible').length)
+
+// --- ECharts 柱形图 ---
+const chartRef = ref<HTMLDivElement>()
+let chartInstance: echarts.ECharts | null = null
+
+const chartData = computed(() => {
+  const names = ['青霉素', '阿司匹林', '乳胶', '布洛芬', '对乙酰氨基酚']
+  return names.map((name) => ({
+    name,
+    value: tableData.value.filter((i) => i.allergenName === name).length,
+  }))
+})
+
+function initChart() {
+  if (!chartRef.value) return
+  if (chartInstance) chartInstance.dispose()
+  chartInstance = echarts.init(chartRef.value)
+  const data = chartData.value
+  chartInstance.setOption({
+    dataset: [{
+      source: data.map((d) => [d.name, d.value]),
+    }, {
+      transform: { type: 'sort', config: { dimension: 1, order: 'desc' } },
+    }],
+    xAxis: { type: 'value', axisLabel: { show: false }, splitLine: { show: false } },
+    yAxis: { type: 'category', axisLabel: { fontSize: 12, color: '#78716c' }, axisLine: { show: false }, axisTick: { show: false } },
+    series: { type: 'bar', datasetIndex: 1, itemStyle: { color: '#0f766e', borderRadius: [0, 4, 4, 0] }, barWidth: 16 },
+    grid: { left: 80, right: 20, top: 10, bottom: 10 },
+  })
+}
+
+watch(activeSubTab, (tab) => {
+  if (tab === 'stats') nextTick(() => initChart())
+})
+
+onMounted(() => {
+  if (activeSubTab.value === 'stats') nextTick(() => initChart())
+})
 
 // --- Search ---
 async function handleSearch() {
@@ -869,6 +908,12 @@ onMounted(() => {
           <div class="stats-item-value">{{ total }}</div>
           <div class="stats-item-label">总档案数</div>
         </div>
+      </div>
+      <div class="stats-chart-row">
+        <div
+          ref="chartRef"
+          class="stats-chart"
+        />
       </div>
     </el-card>
 
@@ -1579,6 +1624,15 @@ onMounted(() => {
   font-size: 13px;
   color: #a8a29e;
   margin-top: 4px;
+}
+
+.stats-chart-row {
+  margin-top: 20px;
+}
+
+.stats-chart {
+  width: 50%;
+  height: 200px;
 }
 
 /* ── Image upload ──────────────────────────────────────────────── */
