@@ -81,3 +81,24 @@ export function setPatientAllergyPin(id: number, pinned: boolean) {
 export function updatePatientAllergySortOrders(orders: { id: number; sortOrder: number }[]) {
   return client.put('/patient-allergies/sort-orders', { orders }).then((r) => r.data)
 }
+
+// --- 过敏原字典 ---
+export interface Allergen {
+  id: number
+  name: string
+  category: string
+  description: string
+  createdAt: string
+}
+
+export function createAllergen(data: { name: string; category: string; description?: string }) {
+  return client.post<Allergen>('/allergens', data).then((r) => r.data)
+}
+
+export function updateAllergen(id: number, data: { name?: string; category?: string; description?: string }) {
+  return client.put<Allergen>(`/allergens/${id}`, data).then((r) => r.data)
+}
+
+export function deleteAllergen(id: number) {
+  return client.delete(`/allergens/${id}`).then((r) => r.data)
+}
