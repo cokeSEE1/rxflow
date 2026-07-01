@@ -304,11 +304,11 @@ function initChart() {
         position: 'right',
         fontSize: 12,
         color: '#78716c',
-        formatter: '{c} 条',
+        formatter: '{c}',
       },
     },
     dataZoom: [{ type: 'inside', yAxisIndex: 0, minSpan: 5, maxSpan: 5 }],
-    grid: { left: 80, right: 50, top: 10, bottom: 10 },
+    grid: { left: 80, right: 40, top: 4, bottom: 4 },
   })
 }
 
@@ -1683,7 +1683,7 @@ onMounted(() => {
 
 .stats-chart {
   width: 100%;
-  height: 220px;
+  height: 160px;
 }
 
 /* ── Image upload ──────────────────────────────────────────────── */
