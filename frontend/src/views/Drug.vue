@@ -222,7 +222,6 @@ const CATEGORY_MAP: Record<string, string> = {
   other: '其他',
 }
 
-const CATEGORY_KEYS = Object.keys(CATEGORY_MAP)
 const dictFilter = ref('all')
 const dictPage = ref(1)
 const dictPageSize = ref(10)
@@ -242,13 +241,6 @@ function onDictFilterChange() {
   dictPage.value = 1
 }
 
-const CATEGORY_ICONS: Record<string, string> = {
-  antibiotic: '💊',
-  antipyretic: '🌡️',
-  enzyme: '🧬',
-  other: '📋',
-}
-
 const CATEGORY_TAG_TYPES: Record<string, string> = {
   antibiotic: 'danger',
   antipyretic: 'warning',
@@ -256,22 +248,13 @@ const CATEGORY_TAG_TYPES: Record<string, string> = {
   other: 'info',
 }
 
-function allergensByCategory(cat: string) {
-  return allergens.value.filter((a) => a.category === cat)
-}
-
-function categoryIcon(cat: string): string {
-  return CATEGORY_ICONS[cat] || '📋'
-}
-
 function categoryTagType(cat: string): string {
   return CATEGORY_TAG_TYPES[cat] || 'info'
 }
 
-function barWidth(cat: string): string {
-  if (allergens.value.length === 0) return '0%'
-  return Math.round((allergensByCategory(cat).length / allergens.value.length) * 100) + '%'
-}
+const severeCount = computed(() => tableData.value.filter((i) => i.rawSeverity === 'severe').length)
+const moderateCount = computed(() => tableData.value.filter((i) => i.rawSeverity === 'moderate').length)
+const compatibleCount = computed(() => tableData.value.filter((i) => i.rawSeverity === 'compatible').length)
 
 // --- Search ---
 async function handleSearch() {
@@ -870,36 +853,28 @@ onMounted(() => {
       <div class="stats-title-row">
         <h3 class="dict-title">统计概念</h3>
       </div>
-      <div class="stats-grid">
-        <div
-          v-for="cat in CATEGORY_KEYS"
-          :key="cat"
-          class="stats-card"
-        >
-          <div class="stats-card-head">
-            <span class="stats-card-icon">{{ categoryIcon(cat) }}</span>
-            <span class="stats-card-name">{{ CATEGORY_MAP[cat] || cat }}</span>
-            <span class="stats-card-count">{{ allergensByCategory(cat).length }} 种</span>
-          </div>
-          <div class="stats-card-bar">
-            <div
-              class="stats-card-fill"
-              :style="{ width: barWidth(cat) }"
-            />
-          </div>
+      <div class="stats-row">
+        <div class="stats-item severe">
+          <div class="stats-item-icon">🔴</div>
+          <div class="stats-item-value">{{ severeCount }}</div>
+          <div class="stats-item-label">重度过敏</div>
+        </div>
+        <div class="stats-item moderate">
+          <div class="stats-item-icon">🟠</div>
+          <div class="stats-item-value">{{ moderateCount }}</div>
+          <div class="stats-item-label">中度过敏</div>
+        </div>
+        <div class="stats-item compatible">
+          <div class="stats-item-icon">🟡</div>
+          <div class="stats-item-value">{{ compatibleCount }}</div>
+          <div class="stats-item-label">轻度过敏</div>
+        </div>
+        <div class="stats-item total">
+          <div class="stats-item-icon">📋</div>
+          <div class="stats-item-value">{{ total }}</div>
+          <div class="stats-item-label">总档案数</div>
         </div>
       </div>
-      <div v-if="allergens.length > 0" class="stats-footer">
-        <span class="stats-footer-text">
-          过敏原总数 <strong>{{ allergens.length }}</strong>，
-          覆盖 <strong>{{ CATEGORY_KEYS.length }}</strong> 个分类，
-          档案总数 <strong>{{ total }}</strong> 条
-        </span>
-      </div>
-      <el-empty
-        v-else
-        description="暂无过敏原数据"
-      />
     </el-card>
 
     <!-- Pinned Sort Sub-page -->
@@ -1562,69 +1537,56 @@ onMounted(() => {
   margin-bottom: 20px;
 }
 
-.stats-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-}
-
-.stats-card {
-  padding: 18px 20px;
-  background: #fff;
-  border: 1.5px solid var(--warm-100);
-  border-radius: 14px;
-}
-
-.stats-card-head {
+.stats-row {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 12px;
+  gap: 20px;
 }
 
-.stats-card-icon {
-  font-size: 20px;
-}
-
-.stats-card-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--warm-900);
-}
-
-.stats-card-count {
-  margin-left: auto;
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--teal-700);
-}
-
-.stats-card-bar {
-  height: 6px;
-  background: var(--warm-100);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.stats-card-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #0f766e, #14b8a6);
-  border-radius: 3px;
-  transition: width 0.6s ease;
-}
-
-.stats-footer {
-  margin-top: 20px;
+.stats-item {
+  flex: 1;
   text-align: center;
+  padding: 24px 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--warm-100);
+  background: #fff;
 }
 
-.stats-footer-text {
+.stats-item.severe {
+  border-color: #fecaca;
+  background: linear-gradient(135deg, #fef2f2, #fff);
+}
+
+.stats-item.moderate {
+  border-color: #fed7aa;
+  background: linear-gradient(135deg, #fff7ed, #fff);
+}
+
+.stats-item.compatible {
+  border-color: #fef08a;
+  background: linear-gradient(135deg, #fefce8, #fff);
+}
+
+.stats-item.total {
+  border-color: #ccfbf1;
+  background: linear-gradient(135deg, #f0fdfa, #fff);
+}
+
+.stats-item-icon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.stats-item-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--warm-900);
+  line-height: 1.2;
+}
+
+.stats-item-label {
   font-size: 13px;
   color: #a8a29e;
-}
-
-.stats-footer-text strong {
-  color: var(--teal-700);
+  margin-top: 4px;
 }
 
 /* ── Image upload ──────────────────────────────────────────────── */
