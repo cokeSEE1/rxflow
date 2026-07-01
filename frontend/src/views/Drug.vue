@@ -1552,6 +1552,7 @@ onMounted(() => {
 }
 
 .stats-item-value {
+  font-family: 'DM Serif Display', serif;
   font-size: 28px;
   font-weight: 700;
   color: var(--warm-900);
