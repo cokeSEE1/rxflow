@@ -83,6 +83,19 @@ export function updatePatientAllergySortOrders(orders: { id: number; sortOrder: 
   return client.put('/patient-allergies/sort-orders', { orders }).then((r) => r.data)
 }
 
+// --- 过敏统计 ---
+export interface AllergyStatsResult {
+  severe: number
+  moderate: number
+  mild: number
+  total: number
+  topAllergens: { name: string; count: number }[]
+}
+
+export function getAllergyStats() {
+  return client.get<AllergyStatsResult>('/patient-allergies/stats').then((r) => r.data)
+}
+
 export async function uploadAllergyImage(file: File) {
   const formData = new FormData()
   formData.append('file', file)

@@ -6,7 +6,8 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { listAllergens, createAllergen, updateAllergen, deleteAllergen } from '@/api/allergens'
 import type { Allergen } from '@/api/allergens'
 import { listPatients } from '@/api/patients'
-import { listPatientAllergies, createPatientAllergy, updatePatientAllergy, deletePatientAllergy, setPatientAllergyPin, updatePatientAllergySortOrders, uploadAllergyImage } from '@/api/drugs'
+import { listPatientAllergies, createPatientAllergy, updatePatientAllergy, deletePatientAllergy, setPatientAllergyPin, updatePatientAllergySortOrders, uploadAllergyImage, getAllergyStats } from '@/api/drugs'
+import type { AllergyStatsResult } from '@/api/drugs'
 
 // --- Sub tab ---
 const activeSubTab = ref('list')
@@ -253,30 +254,37 @@ function categoryTagType(cat: string): string {
   return CATEGORY_TAG_TYPES[cat] || 'info'
 }
 
-const severeCount = computed(() => tableData.value.filter((i) => i.rawSeverity === 'severe').length)
-const moderateCount = computed(() => tableData.value.filter((i) => i.rawSeverity === 'moderate').length)
-const compatibleCount = computed(() => tableData.value.filter((i) => i.rawSeverity === 'compatible').length)
+// --- 统计状态（来自 /api/patient-allergies/stats） ---
+const stats = reactive<AllergyStatsResult>({
+  severe: 0,
+  moderate: 0,
+  mild: 0,
+  total: 0,
+  topAllergens: [],
+})
+
+async function fetchStats() {
+  try {
+    const res = await getAllergyStats()
+    Object.assign(stats, res)
+    // stats 更新后立即刷新两个图表
+    await nextTick()
+    updateChart()
+    updateDoughnut()
+  } catch {
+    // 静默失败，保留旧值
+  }
+}
 
 // --- ECharts 柱形图 ---
 const chartRef = ref<HTMLDivElement>()
 let chartInstance: echarts.ECharts | null = null
 
-const chartData = computed(() => {
-  const names = ['青霉素', '阿司匹林', '乳胶', '布洛芬', '对乙酰氨基酚']
-  return names.map((name) => ({
-    name,
-    value: tableData.value.filter((i) => i.allergenName === name).length,
-  }))
-})
-
-function initChart() {
-  if (!chartRef.value) return
-  if (chartInstance) chartInstance.dispose()
-  chartInstance = echarts.init(chartRef.value)
-  const data = chartData.value
-  chartInstance.setOption({
+function getChartOption() {
+  const data = stats.topAllergens
+  return {
     dataset: [{
-      source: data.map((d) => [d.name, d.value]),
+      source: data.map((d) => [d.name, d.count]),
     }, {
       transform: { type: 'sort', config: { dimension: 1, order: 'desc' } },
     }],
@@ -299,19 +307,123 @@ function initChart() {
           { offset: 1, color: '#2dd4bf' },
         ]),
       },
-      label: { show: true, position: 'right', formatter: '{c}' },
+      label: {
+        show: true,
+        position: 'right',
+        formatter: (params: any) => {
+          const val = Array.isArray(params.value) ? params.value[1] : params.value
+          return String(val ?? '')
+        },
+      },
     },
-    dataZoom: [{ type: 'inside', yAxisIndex: 0, minSpan: 5, maxSpan: 5 }],
+    dataZoom: [{ type: 'inside', yAxisIndex: 0, minSpan: 2 }],
     grid: { left: 80, right: 40, top: 4, bottom: 4 },
-  })
+  }
 }
 
+/** 完整初始化：销毁旧实例 + 创建新实例 + 渲染。用于 tab 切换（v-if 会重建 DOM） */
+function initChart() {
+  if (!chartRef.value) return
+  if (chartInstance) {
+    chartInstance.dispose()
+    chartInstance = null
+  }
+  chartInstance = echarts.init(chartRef.value)
+  chartInstance.setOption(getChartOption())
+}
+
+/** 仅更新数据：复用已有实例。用于 tableData 变化时刷新 */
+function updateChart() {
+  if (!chartInstance || !chartRef.value) return
+  chartInstance.setOption(getChartOption())
+}
+
+// 切换到统计 tab → 完整初始化（v-if 重建了 DOM，旧实例已失效）
 watch(activeSubTab, (tab) => {
-  if (tab === 'stats') nextTick(() => initChart())
+  if (tab === 'stats') nextTick(() => { initChart(); initDoughnut() })
 })
 
+// --- ECharts 圆角环形图 ---
+const doughnutRef = ref<HTMLDivElement>()
+let doughnutInstance: echarts.ECharts | null = null
+
+function getDoughnutOption() {
+  const totalCount = stats.total
+  return {
+    tooltip: { trigger: 'item' },
+    legend: {
+      bottom: 0,
+      itemWidth: 10,
+      itemHeight: 10,
+      itemGap: 28,
+      textStyle: { fontSize: 13, color: '#78716c' },
+    },
+    series: [{
+      type: 'pie',
+      radius: ['55%', '75%'],
+      center: ['50%', '46%'],
+      avoidLabelOverlap: false,
+      itemStyle: {
+        borderRadius: 8,
+        borderColor: '#fff',
+        borderWidth: 3,
+      },
+      label: { show: false },
+      emphasis: { scaleSize: 6 },
+      data: [
+        { value: stats.severe, name: '重度', itemStyle: { color: '#ef4444' } },
+        { value: stats.moderate, name: '中度', itemStyle: { color: '#f97316' } },
+        { value: stats.mild, name: '轻度', itemStyle: { color: '#3b82f6' } },
+      ],
+    }],
+    graphic: [
+      {
+        type: 'text',
+        left: 'center',
+        top: '36%',
+        style: {
+          text: String(totalCount),
+          textAlign: 'center',
+          fontSize: 28,
+          fontWeight: 700,
+          fontFamily: 'DM Serif Display, serif',
+          fill: '#1c1917',
+        },
+      },
+      {
+        type: 'text',
+        left: 'center',
+        top: '49%',
+        style: {
+          text: '总档案',
+          textAlign: 'center',
+          fontSize: 12,
+          fontWeight: 400,
+          fill: '#a8a29e',
+        },
+      },
+    ],
+  }
+}
+
+function initDoughnut() {
+  if (!doughnutRef.value) return
+  if (doughnutInstance) {
+    doughnutInstance.dispose()
+    doughnutInstance = null
+  }
+  doughnutInstance = echarts.init(doughnutRef.value)
+  doughnutInstance.setOption(getDoughnutOption())
+}
+
+function updateDoughnut() {
+  if (!doughnutInstance || !doughnutRef.value) return
+  doughnutInstance.setOption(getDoughnutOption())
+}
+
 onMounted(() => {
-  if (activeSubTab.value === 'stats') nextTick(() => initChart())
+  handleSearch()
+  fetchDropdownData()
 })
 
 // --- Search ---
@@ -342,6 +454,8 @@ async function handleSearch() {
       createdAt: item.createdAt,
     }))
     total.value = res.total
+    // 刷新统计数据（fetchStats 内部会刷新图表）
+    await fetchStats()
   } finally {
     loading.value = false
   }
@@ -912,29 +1026,37 @@ onMounted(() => {
       </div>
       <div class="stats-row">
         <div class="stats-item severe">
-          <div class="stats-item-value">{{ severeCount }}</div>
+          <div class="stats-item-value">{{ stats.severe }}</div>
           <div class="stats-item-label">重度过敏</div>
         </div>
         <div class="stats-item moderate">
-          <div class="stats-item-value">{{ moderateCount }}</div>
+          <div class="stats-item-value">{{ stats.moderate }}</div>
           <div class="stats-item-label">中度过敏</div>
         </div>
         <div class="stats-item compatible">
-          <div class="stats-item-value">{{ compatibleCount }}</div>
+          <div class="stats-item-value">{{ stats.mild }}</div>
           <div class="stats-item-label">轻度过敏</div>
         </div>
         <div class="stats-item total">
-          <div class="stats-item-value">{{ total }}</div>
+          <div class="stats-item-value">{{ stats.total }}</div>
           <div class="stats-item-label">总档案数</div>
         </div>
       </div>
       <div class="stats-chart-row">
         <div class="stats-chart-box">
-          <div class="stats-chart-title">过敏原分布TOP5</div>
+          <div class="stats-chart-title">过敏源分布</div>
           <div class="stats-chart-divider" />
           <div
             ref="chartRef"
             class="stats-chart"
+          />
+        </div>
+        <div class="stats-chart-box">
+          <div class="stats-chart-title">严重程度分布</div>
+          <div class="stats-chart-divider" />
+          <div
+            ref="doughnutRef"
+            class="stats-doughnut"
           />
         </div>
       </div>
@@ -1650,11 +1772,14 @@ onMounted(() => {
 }
 
 .stats-chart-row {
+  display: flex;
+  gap: 20px;
   margin-top: 20px;
 }
 
 .stats-chart-box {
-  width: 50%;
+  flex: 1;
+  min-width: 0;
   border: 1.5px solid #d6d3d1;
   border-radius: 14px;
   background: #fff;
@@ -1678,6 +1803,11 @@ onMounted(() => {
 .stats-chart {
   width: 100%;
   height: 160px;
+}
+
+.stats-doughnut {
+  width: 100%;
+  height: 280px;
 }
 
 /* ── Image upload ──────────────────────────────────────────────── */

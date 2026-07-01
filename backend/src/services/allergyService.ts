@@ -229,7 +229,7 @@ export async function getAllergyStats() {
   return {
     severe: severityMap['severe'] || 0,
     moderate: severityMap['moderate'] || 0,
-    mild: severityMap['mild'] || 0,
+    mild: severityMap['compatible'] || 0,
     total,
     topAllergens,
   }
