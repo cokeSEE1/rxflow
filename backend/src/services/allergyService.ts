@@ -193,6 +193,48 @@ export async function setPin(id: number, pinned: boolean) {
   })
 }
 
+export async function getAllergyStats() {
+  const [severityGroups, allergenGroups, total] = await Promise.all([
+    prisma.patientAllergy.groupBy({
+      by: ['severity'],
+      _count: { id: true },
+      where: { severity: { not: null } },
+    }),
+    prisma.patientAllergy.groupBy({
+      by: ['allergenId'],
+      _count: { id: true },
+      orderBy: { _count: { id: 'desc' } },
+      take: 8,
+    }),
+    prisma.patientAllergy.count(),
+  ])
+
+  const severityMap: Record<string, number> = {}
+  severityGroups.forEach((g) => {
+    if (g.severity) severityMap[g.severity] = g._count.id
+  })
+
+  const allergenIds = allergenGroups.map((g) => g.allergenId)
+  const allergens = await prisma.allergen.findMany({
+    where: { id: { in: allergenIds } },
+    select: { id: true, name: true },
+  })
+  const allergenNameMap = new Map(allergens.map((a) => [a.id, a.name]))
+
+  const topAllergens = allergenGroups.map((g) => ({
+    name: allergenNameMap.get(g.allergenId) || '未知',
+    count: g._count.id,
+  }))
+
+  return {
+    severe: severityMap['severe'] || 0,
+    moderate: severityMap['moderate'] || 0,
+    mild: severityMap['mild'] || 0,
+    total,
+    topAllergens,
+  }
+}
+
 export async function updateSortOrders(orders: { id: number; sortOrder: number }[]) {
   try {
     await Promise.all(

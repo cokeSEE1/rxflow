@@ -18,6 +18,18 @@ router.get(
   },
 )
 
+router.get(
+  '/stats',
+  requireRole('assistant', 'doctor', 'pharmacist'),
+  async (_req: Request, res: Response, next: NextFunction) => {
+    try {
+      res.json(await service.getAllergyStats())
+    } catch (e) {
+      next(e)
+    }
+  },
+)
+
 // ⚠️ Static path /sort-orders MUST be before /:id routes
 router.put(
   '/sort-orders',

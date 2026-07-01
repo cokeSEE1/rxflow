@@ -28,8 +28,9 @@ curl -X POST http://192.168.1.8:3000/api/auth/login \
 
 1. [过敏原主数据](#1-过敏原主数据)
 2. [患者过敏档案 CRUD](#2-患者过敏档案-crud)
-3. [药品过敏风险检测](#3-药品过敏风险检测)
-4. [数据模型](#4-数据模型)
+3. [统计概览](#3-统计概览) 🆕
+4. [药品过敏风险检测](#4-药品过敏风险检测)
+5. [数据模型](#5-数据模型)
 
 ---
 
@@ -222,11 +223,56 @@ DELETE /api/patient-allergies/:id
 
 ---
 
-## 3. 药品过敏风险检测
+## 3. 统计概览 🆕
+
+### GET /api/patient-allergies/stats
+
+返回全量过敏档案的统计聚合数据，用于统计概览页面的卡片和图表展示。后端通过 `groupBy` 聚合查询，不受分页限制。
+
+**权限**：assistant / doctor / pharmacist
+
+**响应示例**：
+
+```json
+{
+  "severe": 1,
+  "moderate": 2,
+  "mild": 2,
+  "total": 5,
+  "topAllergens": [
+    { "name": "青霉素", "count": 1 },
+    { "name": "阿司匹林", "count": 1 },
+    { "name": "对乙酰氨基酚", "count": 1 }
+  ]
+}
+```
+
+**字段说明**：
+
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `severe` | number | 重度过敏档案数 |
+| `moderate` | number | 中度过敏档案数 |
+| `mild` | number | 轻度过敏档案数 |
+| `total` | number | 过敏档案总数 |
+| `topAllergens` | array | 过敏原分布 Top 8，按数量降序 |
+| `topAllergens[].name` | string | 过敏原名称 |
+| `topAllergens[].count` | number | 该过敏原关联的档案数 |
+
+**调用示例**：
+
+```bash
+curl http://192.168.1.8:3000/api/patient-allergies/stats \
+  -H "Authorization: Bearer <accessToken>"
+```
+
+---
+
+## 4. 药品过敏风险检测
 
 药品搜索接口已集成过敏风险检测。当传入 `patientId` 时，自动标记每个药品对该患者的过敏风险等级。
 
-### 3.1 药品搜索（含过敏风险）
+### 4.1 药品搜索（含过敏风险）
 
 ```
 GET /api/drugs/search?keyword=阿莫西林&patientId=1
@@ -280,7 +326,7 @@ GET /api/drugs/search?keyword=阿莫西林&patientId=1
 
 ---
 
-## 4. 数据模型
+## 5. 数据模型
 
 ### Allergen（过敏原主数据）
 
@@ -323,7 +369,7 @@ Drug → DrugIngredient → Allergen → PatientAllergy → Patient
 
 ---
 
-## 5. 错误响应
+## 6. 错误响应
 
 所有接口遵循统一的错误响应格式：
 
