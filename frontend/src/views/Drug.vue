@@ -851,26 +851,21 @@ onMounted(() => {
     <!-- Stats Sub-page -->
     <el-card v-if="activeSubTab === 'stats'">
       <div class="stats-title-row">
-        <h3 class="dict-title">统计概念</h3>
       </div>
       <div class="stats-row">
         <div class="stats-item severe">
-          <div class="stats-item-icon">🔴</div>
           <div class="stats-item-value">{{ severeCount }}</div>
           <div class="stats-item-label">重度过敏</div>
         </div>
         <div class="stats-item moderate">
-          <div class="stats-item-icon">🟠</div>
           <div class="stats-item-value">{{ moderateCount }}</div>
           <div class="stats-item-label">中度过敏</div>
         </div>
         <div class="stats-item compatible">
-          <div class="stats-item-icon">🟡</div>
           <div class="stats-item-value">{{ compatibleCount }}</div>
           <div class="stats-item-label">轻度过敏</div>
         </div>
         <div class="stats-item total">
-          <div class="stats-item-icon">📋</div>
           <div class="stats-item-value">{{ total }}</div>
           <div class="stats-item-label">总档案数</div>
         </div>
@@ -1581,6 +1576,22 @@ onMounted(() => {
   font-weight: 700;
   color: var(--warm-900);
   line-height: 1.2;
+}
+
+.stats-item.severe .stats-item-value {
+  color: #ef4444;
+}
+
+.stats-item.moderate .stats-item-value {
+  color: #f97316;
+}
+
+.stats-item.compatible .stats-item-value {
+  color: #3b82f6;
+}
+
+.stats-item.total .stats-item-value {
+  color: #16a34a;
 }
 
 .stats-item-label {
