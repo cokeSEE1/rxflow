@@ -299,7 +299,7 @@ function initChart() {
           { offset: 1, color: '#2dd4bf' },
         ]),
       },
-      label: { show: false },
+      label: { show: true, position: 'right', formatter: '{c}' },
     },
     dataZoom: [{ type: 'inside', yAxisIndex: 0, minSpan: 5, maxSpan: 5 }],
     grid: { left: 80, right: 40, top: 4, bottom: 4 },
