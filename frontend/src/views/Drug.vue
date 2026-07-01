@@ -2,9 +2,8 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import { listAllergens } from '@/api/allergens'
+import { listAllergens, createAllergen, updateAllergen, deleteAllergen } from '@/api/allergens'
 import type { Allergen } from '@/api/allergens'
-import { createAllergen, updateAllergen, deleteAllergen } from '@/api/drugs'
 import { listPatients } from '@/api/patients'
 import { listPatientAllergies, createPatientAllergy, updatePatientAllergy, deletePatientAllergy, setPatientAllergyPin, updatePatientAllergySortOrders } from '@/api/drugs'
 
