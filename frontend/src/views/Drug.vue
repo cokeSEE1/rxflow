@@ -281,9 +281,34 @@ function initChart() {
       transform: { type: 'sort', config: { dimension: 1, order: 'desc' } },
     }],
     xAxis: { type: 'value', axisLabel: { show: false }, splitLine: { show: false } },
-    yAxis: { type: 'category', axisLabel: { fontSize: 12, color: '#78716c' }, axisLine: { show: false }, axisTick: { show: false } },
-    series: { type: 'bar', datasetIndex: 1, itemStyle: { color: '#0f766e', borderRadius: [0, 4, 4, 0] }, barWidth: 16 },
-    grid: { left: 80, right: 20, top: 10, bottom: 10 },
+    yAxis: {
+      type: 'category',
+      axisLabel: { fontSize: 12, color: '#78716c' },
+      axisLine: { show: false },
+      axisTick: { show: false },
+      inverse: true,
+    },
+    series: {
+      type: 'bar',
+      datasetIndex: 1,
+      barWidth: 16,
+      itemStyle: {
+        borderRadius: [0, 4, 4, 0],
+        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          { offset: 0, color: '#0f766e' },
+          { offset: 1, color: '#2dd4bf' },
+        ]),
+      },
+      label: {
+        show: true,
+        position: 'right',
+        fontSize: 12,
+        color: '#78716c',
+        formatter: '{c} 条',
+      },
+    },
+    dataZoom: [{ type: 'inside', yAxisIndex: 0, minSpan: 5, maxSpan: 5 }],
+    grid: { left: 80, right: 50, top: 10, bottom: 10 },
   })
 }
 
@@ -910,10 +935,14 @@ onMounted(() => {
         </div>
       </div>
       <div class="stats-chart-row">
-        <div
-          ref="chartRef"
-          class="stats-chart"
-        />
+        <div class="stats-chart-box">
+          <div class="stats-chart-title">过敏原分布TOP5</div>
+          <div class="stats-chart-divider" />
+          <div
+            ref="chartRef"
+            class="stats-chart"
+          />
+        </div>
       </div>
     </el-card>
 
@@ -1630,9 +1659,31 @@ onMounted(() => {
   margin-top: 20px;
 }
 
-.stats-chart {
+.stats-chart-box {
   width: 50%;
-  height: 200px;
+  border: 1.5px solid #d6d3d1;
+  border-radius: 14px;
+  background: #fff;
+  overflow: hidden;
+}
+
+.stats-chart-title {
+  font-family: 'DM Serif Display', serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--warm-900);
+  padding: 14px 16px 0;
+}
+
+.stats-chart-divider {
+  height: 1px;
+  background: var(--warm-100);
+  margin: 10px 16px 0;
+}
+
+.stats-chart {
+  width: 100%;
+  height: 220px;
 }
 
 /* ── Image upload ──────────────────────────────────────────────── */
