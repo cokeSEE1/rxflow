@@ -1539,31 +1539,11 @@ onMounted(() => {
 
 .stats-item {
   flex: 1;
-  text-align: center;
+  text-align: left;
   padding: 24px 16px;
   border-radius: 14px;
-  border: 1.5px solid var(--warm-100);
+  border: 1.5px solid #d6d3d1;
   background: #fff;
-}
-
-.stats-item.severe {
-  border-color: #fecaca;
-  background: linear-gradient(135deg, #fef2f2, #fff);
-}
-
-.stats-item.moderate {
-  border-color: #fed7aa;
-  background: linear-gradient(135deg, #fff7ed, #fff);
-}
-
-.stats-item.compatible {
-  border-color: #fef08a;
-  background: linear-gradient(135deg, #fefce8, #fff);
-}
-
-.stats-item.total {
-  border-color: #ccfbf1;
-  background: linear-gradient(135deg, #f0fdfa, #fff);
 }
 
 .stats-item-icon {
