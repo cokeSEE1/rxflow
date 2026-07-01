@@ -5,7 +5,7 @@ import type { FormInstance, FormRules } from 'element-plus'
 import { listAllergens, createAllergen, updateAllergen, deleteAllergen } from '@/api/allergens'
 import type { Allergen } from '@/api/allergens'
 import { listPatients } from '@/api/patients'
-import { listPatientAllergies, createPatientAllergy, updatePatientAllergy, deletePatientAllergy, setPatientAllergyPin, updatePatientAllergySortOrders } from '@/api/drugs'
+import { listPatientAllergies, createPatientAllergy, updatePatientAllergy, deletePatientAllergy, setPatientAllergyPin, updatePatientAllergySortOrders, uploadAllergyImage } from '@/api/drugs'
 
 // --- Sub tab ---
 const activeSubTab = ref('list')
@@ -481,9 +481,7 @@ async function handleSubmit() {
 
     // 上传图片
     if (imageFile.value) {
-      const formData = new FormData()
-      formData.append('file', imageFile.value)
-      const uploadRes = await fetch('/api/upload', { method: 'POST', body: formData }).then((r) => r.json())
+      const uploadRes = await uploadAllergyImage(imageFile.value)
       if (uploadRes.url) {
         payload.images = [{ name: uploadRes.filename || imageFile.value.name, url: uploadRes.url }]
       }

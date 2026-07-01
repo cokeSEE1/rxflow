@@ -82,3 +82,9 @@ export function setPatientAllergyPin(id: number, pinned: boolean) {
 export function updatePatientAllergySortOrders(orders: { id: number; sortOrder: number }[]) {
   return client.put('/patient-allergies/sort-orders', { orders }).then((r) => r.data)
 }
+
+export async function uploadAllergyImage(file: File) {
+  const formData = new FormData()
+  formData.append('file', file)
+  return fetch('/api/upload', { method: 'POST', body: formData }).then((r) => r.json())
+}
