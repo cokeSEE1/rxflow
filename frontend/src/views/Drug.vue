@@ -299,7 +299,7 @@ function getChartOption() {
     series: {
       type: 'bar',
       datasetIndex: 1,
-      barWidth: 16,
+      barWidth: 22,
       itemStyle: {
         borderRadius: [0, 4, 4, 0],
         color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
@@ -317,7 +317,7 @@ function getChartOption() {
       },
     },
     dataZoom: [{ type: 'inside', yAxisIndex: 0, minSpan: 2 }],
-    grid: { left: 80, right: 40, top: 4, bottom: 4 },
+    grid: { left: 80, right: 40, top: 6, bottom: 6 },
   }
 }
 
@@ -687,7 +687,7 @@ onMounted(() => {
     <div class="page-header">
       <h1 class="page-title">过敏档案管理</h1>
       <el-button
-        v-if="activeSubTab !== 'dict'"
+        v-if="activeSubTab !== 'dict' && activeSubTab !== 'stats'"
         type="primary"
         class="add-btn"
         @click="openCreate"
@@ -695,7 +695,7 @@ onMounted(() => {
         新增过敏档案
       </el-button>
       <el-button
-        v-else
+        v-if="activeSubTab === 'dict'"
         type="primary"
         class="add-btn"
         @click="openAllergenCreate"
@@ -1788,7 +1788,7 @@ onMounted(() => {
 
 .stats-chart-title {
   font-family: 'DM Serif Display', serif;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 500;
   color: var(--warm-900);
   padding: 14px 16px 0;
@@ -1802,7 +1802,7 @@ onMounted(() => {
 
 .stats-chart {
   width: 100%;
-  height: 160px;
+  height: 243px;
 }
 
 .stats-doughnut {
